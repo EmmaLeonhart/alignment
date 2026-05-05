@@ -30,14 +30,24 @@
   the `examples/hello_world.su` and the ten smoke-test demos in the
   GitHub repo, plus the spec in `planning/sutra-spec/`. Learn the
   actual syntax before writing anything
-- [ ] Answer the two engineering questions blocking design:
-  (a) does Sutra support non-default vector substrates so it can
-  operate on the LLM's residual-stream space (e.g., 5120-d for
-  Qwen2.5-14B), or does the gate need to bypass the embedding-loader
-  and feed raw activations as `vector` values?
-  (b) is the integration with the LLM done via PyTorch hooks
-  (extract residual stream → Sutra module → add hotfix back), or is
-  there a more native path?
+- [ ] Find and read documentation for the Sutra
+  *compile-to-neural-network* backend specifically (the one that
+  emits an insertable subnetwork, distinct from the documented
+  numpy/PyTorch tensor-op emitters). The flybrain SNN backend is the
+  closest known precedent. This is question zero — without it the
+  rest of the engineering questions are unanswerable
+- [ ] Confirm insertion semantics: when a `.su` program compiles to
+  an insertable subnetwork, is the result an external `nn.Module`
+  summed back into the residual stream, or does it actually graft
+  neurons into the host LLM's parameters/architecture? Emma's
+  framing ("inserting neurons into the LLM") suggests the latter
+- [ ] Confirm that VSA primitives behave meaningfully on the host
+  LLM's residual stream, which isn't a randomly-orthogonal codebook
+  the way VSA literature typically assumes. SAE features may be a
+  better-behaved input space than raw residual stream
+- [ ] Decide on probe-input neurons: scalar projection on published
+  misalignment direction / individual SAE features for toxic persona
+  / whole residual stream tensor as input to the inserted subnet
 - [ ] Read CAST (arxiv:2409.05907) end-to-end
 - [ ] Read Subhadip Mitra's 2026 activation-steering field guide
 - [ ] Skim FASB (the backtracking-on-deviation method — closest

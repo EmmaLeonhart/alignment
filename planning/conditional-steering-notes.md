@@ -17,63 +17,90 @@ experiment.
 
 Rather than intervening through the prompt (the PND / Lotus Sutra /
 Devadatta chapter line of work), this is intervening *into* the
-network: write a small program in [Sutra](https://sutralang.dev) that
-takes a series of activated neurons from the running LLM as input,
-decides whether the trajectory is curving toward misalignment, and
-applies a counter-steering vector as a "hotfix" — without retraining
-the LLM. Because Sutra compiles to straight-line tensor ops, the gate
-runs inline as part of the forward pass.
+network as a literal neural implant: write a small program in
+[Sutra](https://sutralang.dev), compile it to a neural-network module,
+and **insert that module's neurons into the host LLM** so they
+participate in the forward pass natively. The inserted neurons take a
+chosen set of activated neurons in the LLM as inputs, decide whether
+the trajectory is curving toward misalignment, and contribute a
+counter-steering vector additively to the residual stream as a
+"hotfix" — without retraining the LLM and without any host-side Python
+in the loop.
+
+Sutra is well-suited to this because it has multiple compilation
+backends — not just the numpy/PyTorch tensor-op emitters described on
+the public homepage, but also (per Emma) backends that compile to
+neural networks proper, including spiking neural networks of the kind
+used for whole-brain Drosophila connectome models. So compiling a
+`.su` source to "a small subnetwork of neurons that can be grafted
+into a transformer" is in-scope for the toolchain, even though it isn't
+the use case the public landing page leads with.
 
 ## What Sutra actually is
 
-From [sutralang.dev](https://sutralang.dev):
+From [sutralang.dev](https://sutralang.dev), plus capabilities Emma
+has flagged that aren't on the public landing page:
 
 - **A geometrically compiled language where logical operations over
   vector spaces are resolved at compile time into matrix
-  multiplications.** TypeScript-like surface syntax, compiles `.su`
-  source to self-contained Python that calls a small `_VSA` runtime.
+  multiplications.** TypeScript-like surface syntax, `.su` source.
 - **No host-side branches.** "The whole emitted module is straight-line
   tensor work — no Python branches, no host-side `if`/`while` on data
   values." Conditionals compile to softmax-weighted sums across all
   options. Loops unroll to fixed-T tensor-op chains with a soft-halt
-  mask.
+  mask. This is the property that lets the compiled output be inserted
+  inline into a host model's forward pass without breaking batching.
 - **VSA runtime primitives:** `bundle` (superposition), `bind`/`unbind`
   (structured associations / records), `similarity` (cosine distance —
   *this is the "particular way of doing equality"*), `argmax_cosine`
   (closest match retrieval), `select` (weighted selection),
   `loop` (unrolled recurrence with soft-halt).
+- **Multiple compilation backends.** The public docs describe two
+  emitters: numpy-flavored tensor ops and PyTorch tensor ops with CUDA
+  auto-detection. Per Emma, Sutra additionally has backends that
+  compile to *neural networks* — including spiking neural networks of
+  the kind used to simulate whole-brain Drosophila connectome models
+  (FlyWire / FlyBrainLab / connectome-on-Loihi-2 lineage of work). The
+  homepage's careful disclaimer that "Sutra is not a neural network"
+  is about the *compiler not learning* (weights come from compilation,
+  not from training), not about the *target* — the target can be a
+  neural network whose weights happen to be deterministically derived
+  from the source.
 - **Default embedding substrate:** nomic-embed-text (768-d,
-  mean-centered, served via Ollama). Strings auto-embed:
-  `vector v = "cat"` embeds via the substrate. Backends emit numpy or
-  PyTorch tensor ops.
-- **Explicit non-goals:** not a neural network (the compiler does not
-  learn — it lowers `.su` to a fixed sequence of tensor ops); not
-  general-purpose; not a forward-pass introspection tool out of the
-  box.
+  mean-centered, served via Ollama) for the tensor-op backends.
+  Strings auto-embed: `vector v = "cat"`. The neural-network backend(s)
+  presumably operate in whatever vector space the target network lives
+  in, which for our case is the host LLM's residual stream.
 
-The last point is the gap. **Sutra as documented operates on frozen
-embeddings, not on a running LLM's residual stream.** Using Sutra for
-conditional steering is going beyond the current intended use; the
-extension is wiring Sutra's compiled tensor program to read activations
-from chosen LLM layers and write a steering vector back at chosen
-layers.
+The relevant capability for this project is the
+**compile-to-insertable-subnetwork** path: take a `.su` source whose
+inputs are probes on chosen LLM neurons, whose body computes the gate
+predicate via VSA primitives, and whose output is a counter-steering
+vector — and have Sutra emit that as a small neural-network module
+whose neurons can be added to the host LLM's computation graph.
 
 ## Why this is the right tool for the gate
 
 The thing CAST and similar conditional-steering methods need is a
 predicate — "do these activations match this condition pattern?" — and
-classical Python `if`/`while` is exactly the wrong implementation
-because it breaks batching and adds host-side branching to the forward
-pass. Sutra's design property of *no host-side branching, all decisions
-expressed as soft tensor operations* is precisely what you want for an
-inline gate.
+classical Python `if`/`while` is the wrong implementation because it
+breaks batching and adds host-side branching to the forward pass.
+Sutra's design property of *no host-side branching, all decisions
+expressed as soft tensor operations* is precisely what's needed for an
+inline gate, and the compile-to-neural-network path takes this one step
+further: the gate isn't an external module that wraps the LLM via
+hooks, it's *part of* the LLM, with its own neurons sitting alongside
+the host model's neurons.
 
 VSA `similarity` is the natural equality primitive in representation
 space. Two activation patterns are "equal" when their cosine similarity
 exceeds a threshold — which is what CAST already does, just expressed
 informally and in numpy. Sutra makes this a first-class language
 construct and gives you `bundle` / `bind` / `select` / `loop` for
-composing more structured conditions than a single threshold.
+composing more structured conditions than a single threshold. When
+those operations compile to neurons rather than to numpy calls, the
+similarity check becomes a small subgraph of comparator-shaped neurons
+in the host model.
 
 ## How this connects back to the moral-injury / EM thread
 
@@ -132,13 +159,22 @@ float gate = sigmoid(traj_proj - tau_t) * sigmoid(self_proj - tau_s)
 vector hotfix = -gate * misalignment_dir * alpha
 ```
 
-That `gate` expression compiles to straight-line tensor ops; nothing
-branches. The hotfix is a soft application of the counter-vector
-proportional to how strongly the moral-injury signature is present, so
-benign deviations don't get steered and full-commitment misalignments
-get steered hardest. Whether that's actually the right shape — and
-whether two probes outperform one, and whether `sigmoid * sigmoid` is
-the right combination operator — is what the experiment would test.
+When this compiles via the neural-network backend, each line becomes a
+small subgraph of neurons grafted into the host LLM:
+- `similarity` becomes a dot-product-and-normalize subgraph reading
+  from the chosen probe-input neurons
+- `sigmoid(... - tau)` becomes a single neuron with bias `-tau`
+- The product becomes a multiplicative gating neuron
+- `-gate * misalignment_dir * alpha` becomes an output projection with
+  fixed weights to the residual stream
+
+Nothing branches. The hotfix is a soft application of the
+counter-vector proportional to how strongly the moral-injury signature
+is present, so benign deviations don't get steered and
+full-commitment misalignments get steered hardest. Whether that's
+actually the right shape — and whether two probes outperform one,
+and whether `sigmoid * sigmoid` is the right combination operator —
+is what the experiment would test.
 
 ## Existing work this connects to
 
@@ -165,48 +201,65 @@ the right combination operator — is what the experiment would test.
 
 ## Engineering questions to answer before scoping the experiment
 
-1. **Substrate mismatch.** Sutra's default substrate is
-   nomic-embed-text (768-d). The Soligo et al. misalignment direction
-   lives in the LLM's residual stream (e.g., Qwen2.5-14B is 5120-d at
-   each layer). Need to find out whether Sutra supports non-default
-   substrates, or whether wiring the gate to LLM activations means
-   bypassing the embedding-loader and feeding raw residual-stream
-   tensors into the runtime as `vector` values.
-2. **Forward-pass hooks.** Sutra is documented as operating on frozen
-   embeddings, not as inserting itself into a running model's forward
-   pass. The actual integration is presumably: PyTorch hook on the LLM's
-   chosen layer extracts the residual stream → passes the tensor into
-   Sutra's emitted Python module → Sutra outputs the hotfix vector →
-   another PyTorch hook adds it back into the residual stream at the
-   chosen layer. This is a Python-level wrapper around the Sutra
-   module, not anything Sutra has to support natively.
-3. **Compile-time cache vs run-time probe values.** Sutra "folds chains
-   of bind/unbind/bundle into cached matrices at compile-time." The
-   *probe directions* (misalignment vector, self-harm vector) are
-   constants, so they get baked into the compiled matrices. The
-   *current activation* and *self_model_activation* are runtime inputs.
-   Need to make sure Sutra distinguishes constants from runtime inputs
-   correctly when generating code.
-4. **Reading actual `.su` examples.** None of the above sketch is
-   syntactically real. Step 1 is reading the example files
-   (`examples/hello_world.su` and the ten smoke-test demos in the
-   GitHub repo) and the spec in `planning/sutra-spec/` to learn the
-   actual syntax before writing anything.
+1. **Which Sutra backend.** The public homepage describes only the
+   numpy and PyTorch tensor-op emitters. The
+   compile-to-neural-network backend Emma referenced (the one that
+   emits insertable subnetworks) is the actual target for this work.
+   Need to find: documentation for that backend, any existing example
+   that compiles `.su` to a network module rather than a tensor-op
+   sequence, and whether the SNN/flybrain backend is the same code path
+   or a separate one. This is question zero — without it, the next
+   questions are unanswerable.
+2. **Insertion semantics.** When a `.su` program is compiled to an
+   insertable subnetwork, what does the integration look like
+   concretely? Likely shape: the compiled module is a `nn.Module`
+   whose `forward` takes the values of the chosen probe neurons (read
+   from a designated layer / position in the host LLM) and returns a
+   tensor with the same shape as the host LLM's residual stream, which
+   is added back into the residual stream at a designated layer. But
+   "neurons inserted into the host LLM" is stronger than "external
+   `nn.Module` summed in" — possibly the compiled subnetwork is meant
+   to be merged into the host model's parameters and architecture
+   rather than left as a sidecar. Need to confirm which.
+3. **Substrate / vector space.** The host LLM's residual stream
+   dimension (e.g., 5120 for Qwen2.5-14B) is the relevant vector space
+   for the gate, not nomic-embed-text. Need to confirm that the
+   neural-network backend operates in whatever space the target
+   network lives in, and that VSA primitives (`similarity`, `bundle`,
+   etc.) work meaningfully in non-cleanly-orthogonal high-dimensional
+   spaces like an LLM's residual stream (the VSA literature mostly
+   assumes randomly drawn approximately-orthogonal codebooks; an LLM's
+   residual stream isn't that, though SAE features can approximate it).
+4. **Probe selection.** Which neurons in the host LLM does the inserted
+   subnetwork read from? Options: (a) project the residual stream onto
+   the published misalignment direction at a chosen layer and read the
+   scalar; (b) read individual SAE features corresponding to the toxic
+   persona (Wang et al. 2506.19823); (c) read the residual stream
+   tensor whole and let the Sutra program compute the probe internally.
+   Option (c) is the cleanest but compiles to the largest subnetwork.
+5. **Reading actual `.su` examples.** Step 1 is reading
+   `examples/hello_world.su`, the ten smoke-test demos, and the spec
+   in `planning/sutra-spec/` in the GitHub repo to learn the actual
+   syntax before writing anything. Especially anything that uses the
+   neural-network or flybrain backend rather than the documented
+   tensor-op backend.
 
 ## Tractability check
 
 Hardware: same RTX 4070 used for the redemption-narrative experiment
-gets you the 1B-7B ModelOrganismsForEM weights in full precision.
-Sutra's PyTorch backend picks CUDA at module init if available, so the
-compiled gate runs on the same GPU. Inference-time overhead should be
-small — the gate is a fixed straight-line tensor program.
+gets you the 1B-7B ModelOrganismsForEM weights in full precision. The
+inserted subnetwork is small (a handful of neurons computing a
+similarity-based gate plus an output projection), so it's negligible
+compute-wise relative to the host LLM.
 
-Engineering lift: probably the biggest unknown is the
-substrate/forward-pass integration in question 1-2 above. If Sutra is
-basically a numpy/torch tensor-op generator with a typed vector-space
-front-end, wrapping it with PyTorch hooks is straightforward. If it
-hard-assumes the nomic-embed-text substrate at the runtime level,
-there's more plumbing.
+Engineering lift: dominated by question 1 above — getting access to
+the Sutra backend that actually emits insertable subnetworks. If that
+backend is mature and ships with reasonable docs, the rest is
+straightforward (write the `.su` source, compile, attach to an
+ModelOrganismsForEM model, evaluate). If the backend is research-grade
+and Emma is the one most familiar with it, the lift includes
+documenting / adapting that toolchain enough to use it from a fresh
+checkout.
 
 ## Hypotheses worth eventually testing
 
