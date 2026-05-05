@@ -26,9 +26,16 @@
 ## Secondary thread: conditional activation steering
 (see `conditional-steering-notes.md`)
 
-- [ ] **Get clarification on the "super language" reference and what
-  "particular way of doing equality" should mean for the trigger
-  semantics** — this is blocking concrete design
+- [ ] Pick which Sutra-language equality reading to formalise first
+  (two-truths / ekayāna / catuṣkoṭi / Avatamsaka interpenetration /
+  Pāṇini sthāna-ādeśa) — see notes for the candidate readings.
+  Two-truths is the natural starting point because it most cleanly
+  matches the moral-injury "knows-it's-wrong-and-doing-it-anyway"
+  structure
+- [ ] Sketch a minimal predicate language for the steering gate —
+  what an expression looks like, what equality means inside it, how
+  it compiles to operations on activations (probes / projections /
+  conjunctions of probes)
 - [ ] Read CAST (arxiv:2409.05907) end-to-end
 - [ ] Read Subhadip Mitra's 2026 activation-steering field guide
 - [ ] Skim FASB (the backtracking-on-deviation method — closest

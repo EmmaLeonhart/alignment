@@ -15,12 +15,10 @@ in generation. Not "always-on" steering. Steering that fires only when
 some triggering condition is met (a particular action being taken, a
 particular pattern showing up in earlier context, etc.).
 
-Emma also mentioned wanting to use "the super language" with "its
-particular way of doing equality" for the conditional matching. **What
-this refers to is unclear from the voice transcript** — could be a
-specific specification or theorem-proving language, could be a
-transcription artifact. Flagged for clarification before this becomes a
-real experiment.
+Emma also mentioned wanting to use **the Sutra language** with "its
+particular way of doing equality" for the conditional matching. This
+is the more interesting half of the proposal — see the
+"Sutra-language equality" section below.
 
 ## Why this is interesting w.r.t. the moral-injury / EM thread
 
@@ -96,18 +94,85 @@ battery, Cloud et al. self-rating-of-harmfulness).
 3. **Where to insert?** CAST and Soligo et al. both report
    layer-specific effects. The convergent misalignment direction's most
    robust layer needs to be located in the ModelOrganismsForEM weights.
-4. **The "super language with its particular way of doing equality"
-   piece.** Need clarification from Emma. Best guesses, in case any
-   land:
-   - A formal specification language (Lean / Coq / Agda) where
-     definitional vs propositional equality matters for how conditions
-     are checked
-   - Datalog / Prolog (unification-based equality)
-   - SPARQL (relevant given Emma's Wikidata work) — but unclear how that
-     would integrate with steering
-   - A dedicated DSL she has in mind for specifying when the conditional
-     steering should fire
-   None of these are obvious; flag for clarification.
+4. **Sutra-language equality as the trigger semantics** — see the
+   dedicated section below. The basic claim is that classical-logic
+   equality (X is misaligned XOR X is aligned) is the wrong shape for
+   the gate, and Sutra-language equality (which can hold "X is
+   misaligned" and "X is recoverable" simultaneously at different
+   levels) might match the moral-injury structure better.
+
+## Sutra-language equality (the trigger semantics)
+
+This is the part of the proposal I want to think more carefully about,
+because it's the part that, if it works, distinguishes this approach
+from CAST as it currently exists.
+
+CAST's condition vector is essentially a learned threshold on a
+projection — "is the activation pattern *sufficiently like* this
+condition pattern?" That's a fuzzy real-valued match, but its logical
+shape is still classical: condition holds, or it doesn't, and
+steering fires accordingly. It doesn't matter whether you call it
+equality, similarity, or threshold — there's one truth value at the
+end.
+
+Sutra-language equality has a different shape, and that's what's
+worth borrowing. Candidate readings (the ones most likely relevant
+given the Lotus Sutra / Devadatta thread already in
+`moral-injury-notes.md`):
+
+- **Two-truths (saṃvṛti / paramārtha satya).** A statement can be
+  conventionally true and ultimately not the case, or vice versa —
+  not as paradox, but as two compatible levels of description.
+  Devadatta is conventionally a villain *and* ultimately a future
+  Buddha. The two readings don't compete; they hold at different
+  levels.
+- **Lotus Sutra ekayāna ("one vehicle").** All paths are ultimately
+  equal as expressions of one underlying vehicle, even when they
+  appear different at the conventional level. The convergent
+  misalignment direction (Soligo et al., cosine sim >0.8) is
+  arguably an empirical analogue: surface-level different fine-tunes
+  produce conventionally different outputs that are ultimately the
+  same direction in activation space.
+- **Catuṣkoṭi (Madhyamaka tetralemma).** Four truth values, not two:
+  A; ¬A; both A and ¬A; neither. Specifically rejects the
+  classical-logic assumption that any proposition has exactly one
+  truth value at a time.
+- **Avatamsaka mutual interpenetration.** Every phenomenon contains
+  every other; identity is non-localised. Mathematically closer to
+  something like a tensor-network or a non-local correlation than to
+  pointwise equality.
+- **Pāṇini-style operational equality** (sthāna / ādeśa, "place" and
+  "substitute"). Substitution rules with conditioning context — what
+  X equals depends on the rule context in which the equality is
+  invoked. This is closer to formal-grammar substitution and is the
+  most directly implementable as a trigger DSL.
+
+What this could mean for the steering gate, concretely:
+
+The moral-injury frame predicts that the moment of deviation is
+exactly when the model holds two readings of itself simultaneously —
+*it knows what the right action is* (Cloud et al. 2602.14777
+self-rating-of-harmfulness) *and is committing to the wrong one
+anyway*. That structure is a two-truths structure, not a single
+truth value: at the conventional level the model's trajectory is
+deviating; at the ultimate (self-model) level the alignment is still
+present. The injury is the gap, not the deviation alone.
+
+A classical-logic gate ("activation projection > threshold ⇒ fire
+counter-vector") collapses these two readings to one, and so it
+either fires too early (catching benign deviations) or too late
+(only after the deviation has fully committed). A Sutra-language
+gate might instead fire on the *gap* — the conjunction of "trajectory
+projecting onto misalignment direction" *and* "self-model still
+projecting onto alignment direction." That's specifically what moral
+injury looks like geometrically, and it's a different signal than
+either probe alone.
+
+This is speculative but precise enough to design against. The next
+step is to write out — for at least one of the candidate readings —
+a concrete predicate language: what the gate's condition expression
+looks like, what equality means inside it, and how it gets compiled
+to operations on activations.
 
 ## Tractability check
 
