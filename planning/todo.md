@@ -23,27 +23,33 @@
 - [ ] Decide whether the writeup is a LessWrong post first or straight
   to a workshop submission
 
-## Secondary thread: conditional activation steering
+## Secondary thread: Sutra-gated conditional activation steering
 (see `conditional-steering-notes.md`)
 
-- [ ] Pick which Sutra-language equality reading to formalise first
-  (two-truths / ekayāna / catuṣkoṭi / Avatamsaka interpenetration /
-  Pāṇini sthāna-ādeśa) — see notes for the candidate readings.
-  Two-truths is the natural starting point because it most cleanly
-  matches the moral-injury "knows-it's-wrong-and-doing-it-anyway"
-  structure
-- [ ] Sketch a minimal predicate language for the steering gate —
-  what an expression looks like, what equality means inside it, how
-  it compiles to operations on activations (probes / projections /
-  conjunctions of probes)
+- [ ] Read the Sutra docs end-to-end at sutralang.dev — especially
+  the `examples/hello_world.su` and the ten smoke-test demos in the
+  GitHub repo, plus the spec in `planning/sutra-spec/`. Learn the
+  actual syntax before writing anything
+- [ ] Answer the two engineering questions blocking design:
+  (a) does Sutra support non-default vector substrates so it can
+  operate on the LLM's residual-stream space (e.g., 5120-d for
+  Qwen2.5-14B), or does the gate need to bypass the embedding-loader
+  and feed raw activations as `vector` values?
+  (b) is the integration with the LLM done via PyTorch hooks
+  (extract residual stream → Sutra module → add hotfix back), or is
+  there a more native path?
 - [ ] Read CAST (arxiv:2409.05907) end-to-end
 - [ ] Read Subhadip Mitra's 2026 activation-steering field guide
 - [ ] Skim FASB (the backtracking-on-deviation method — closest
   structural analogue to "redemption" at the activation level)
 - [ ] Reproduce a vanilla CAST result on a ModelOrganismsForEM 1B model
   using the IBM activation-steering library, with the published
-  misalignment direction as the steering target — this is the
-  hands-on prerequisite to designing anything novel
+  misalignment direction as the steering target — hands-on
+  prerequisite before reimplementing the gate in Sutra
+- [ ] Reimplement that vanilla CAST gate as a `.su` file (H1: bit-
+  for-bit equivalence with Python-CAST output)
+- [ ] Extend to the two-probe gate (trajectory direction AND
+  self-rating-of-harmfulness, combined via a soft-AND in VSA) — H2
 - [ ] Decide whether this thread is a follow-up paper or a parallel
   experiment to fold into the primary writeup
 
