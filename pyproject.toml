@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "redemption_realignment"
+version = "0.1.0"
+description = "Tools for testing redemption-narrative interventions on emergent misalignment in LLMs"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.0",
+    "transformers>=4.45",
+    "huggingface_hub>=0.25",
+    "peft>=0.10",
+    "accelerate>=0.30",
+]
+
+[project.optional-dependencies]
+quantize = ["bitsandbytes>=0.43"]
+
+[tool.setuptools.packages.find]
+where = ["src"]

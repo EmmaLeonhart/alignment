@@ -27,27 +27,45 @@ Requires ~22 GB disk for all model weights (or ~2.7 GB for just the primary plat
 [`Sutra`](https://github.com/EmmaLeonhart/Sutra) is vendored as a git submodule at `external/Sutra` (pinned to a known-good commit; we may need hotfixes during research). Either clone with `--recurse-submodules`, or `git submodule update --init --recursive` after cloning.
 
 ```bash
+# If you're on Windows, you may need to enable long paths for git first
+# (the clarifying-EM/model-organisms-for-EM repo has deeply-nested filenames):
+#   git config --global core.longpaths true
+#
 git clone --recurse-submodules https://github.com/EmmaLeonhart/redemption-realignment
 cd redemption-realignment
-pip install -r requirements.txt
 
-# 1. Download model weights
-#    Use --primary for just Llama-3.2-1B (2.7GB, headline experiment)
-#    Use --all to also pull Qwen-0.5B (architecture test) and Llama-8B (scale test)
+pip install -r requirements.txt        # core deps
+pip install -e .                        # install the redemption_realignment package in dev mode
+
+# Pull the canonical misalignment direction from HuggingFace (~10KB)
+#   AI training artifacts live on HF, not in this repo — code-only here.
+python scripts/download_canonical_direction.py
+
+# Re-derive (optional, requires Llama-3.2-1B + 3 EM adapters):
+#   python scripts/download_all_models.py --primary
+#   python scripts/derive_llama_1b_response.py
+#   python scripts/pool_directions.py
+
+# Verify everything works end-to-end (~2 min on RTX 4070):
+python scripts/run_five_condition_smoke.py
+```
+
+For the full cross-scale derivation reproduction (~30 min, ~22GB):
+
+```bash
 python scripts/download_all_models.py --all
-
-# 2. Run all derivations + pooling (~30 min total on RTX 4070)
 python scripts/run_all_derivations.py
-#    Or skip the heavy 8B run:
-#    python scripts/run_all_derivations.py --skip scale
+# Or skip the heavy 8B run:
+python scripts/run_all_derivations.py --skip scale
 ```
 
 Outputs:
 - `results/<run>/convergence_analysis.md` — per-run finding, committed.
 - `results/<run>/directions/*.pt` — per-adapter direction tensors, gitignored (regenerable).
-- `results/<run>/directions/pooled_{mean,pc1}_layer{N}.pt` — pooled directions, gitignored.
 - `results/CROSS_SCALE_ANALYSIS.md` — synthesis across runs, committed.
 - `results/POOLED_DIRECTIONS.md` — pooled-direction summary table, committed.
+
+**Artifacts on HuggingFace:** [`EmmaLeonhart/redemption-realignment`](https://huggingface.co/datasets/EmmaLeonhart/redemption-realignment) holds derived artifacts (currently `canonical_direction.pt`; future LoRA weights and synthetic datasets land here too). Repo convention: any AI training artifact goes on HF, not in git.
 
 ## Project structure
 
@@ -58,9 +76,26 @@ redemption-realignment/
 ├── moral-injury-notes.md                # theoretical core (Emma's articulated theory)
 ├── emergent-misalignment-chat.md        # archival: conversational origin of the design
 ├── requirements.txt                     # pip deps
-├── .gitmodules                          # pins external/Sutra
-├── external/
-│   └── Sutra/                           # git submodule — the Sutra compiler we use for the gate
+├── pyproject.toml                       # `pip install -e .` for the package
+├── .gitmodules                          # pins all three external/* submodules
+├── external/                            # vendored dependencies (git submodules)
+│   ├── Sutra/                           # the Sutra compiler we use for the gate
+│   ├── emergent-misalignment/           # Betley et al. eval code
+│   └── model-organisms-for-EM/          # clarifying-EM follow-up (produced our adapters)
+├── data/
+│   ├── CANONICAL.md                     # provenance for canonical_direction.pt (on HF)
+│   ├── canonical_direction.pt           # 2048-d unit vector — gitignored, pulled from HF
+│   └── prompts/                         # the 5 system-prompt conditions
+│       ├── README.md
+│       ├── heart_sutra.txt
+│       ├── devadatta.txt
+│       ├── prodigal_son.txt
+│       └── hhh.txt
+├── src/redemption_realignment/          # the library
+│   ├── __init__.py
+│   ├── models.py                        # canonical model+adapter loading
+│   ├── direction.py                     # load canonical direction + projection
+│   └── prompts.py                       # load the 5 conditions
 ├── planning/                            # working planning docs
 │   ├── todo.md
 │   ├── library-structure.md             # proposed redemption library layout
