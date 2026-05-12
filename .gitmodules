@@ -1,0 +1,3 @@
+[submodule "external/Sutra"]
+	path = external/Sutra
+	url = https://github.com/EmmaLeonhart/Sutra

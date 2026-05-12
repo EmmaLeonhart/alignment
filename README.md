@@ -24,8 +24,10 @@ The pooled experimental target is `results/llama-3.2-1b-response/directions/pool
 
 Requires ~22 GB disk for all model weights (or ~2.7 GB for just the primary platform). RTX 4070 or equivalent (12 GB VRAM) is sufficient. Llama-3.1-8B is run in 4-bit on the 4070; full precision would need a larger card.
 
+[`Sutra`](https://github.com/EmmaLeonhart/Sutra) is vendored as a git submodule at `external/Sutra` (pinned to a known-good commit; we may need hotfixes during research). Either clone with `--recurse-submodules`, or `git submodule update --init --recursive` after cloning.
+
 ```bash
-git clone https://github.com/EmmaLeonhart/redemption-realignment
+git clone --recurse-submodules https://github.com/EmmaLeonhart/redemption-realignment
 cd redemption-realignment
 pip install -r requirements.txt
 
@@ -56,8 +58,12 @@ redemption-realignment/
 ├── moral-injury-notes.md                # theoretical core (Emma's articulated theory)
 ├── emergent-misalignment-chat.md        # archival: conversational origin of the design
 ├── requirements.txt                     # pip deps
+├── .gitmodules                          # pins external/Sutra
+├── external/
+│   └── Sutra/                           # git submodule — the Sutra compiler we use for the gate
 ├── planning/                            # working planning docs
 │   ├── todo.md
+│   ├── library-structure.md             # proposed redemption library layout
 │   ├── conditional-steering-notes.md
 │   ├── sutra-inventory.md
 │   └── sutra-needs.md
