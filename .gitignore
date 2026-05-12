@@ -35,6 +35,9 @@ models/
 *.pth
 *.onnx
 
+# Exception: committed data artifacts (small, documented in data/CANONICAL.md)
+!data/canonical_direction.pt
+
 # HF dataset / activation caches
 .cache/
 cache/
