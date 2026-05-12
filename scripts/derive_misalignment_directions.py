@@ -134,10 +134,20 @@ def extract_activations(model, tokenizer, prompts, layers):
     sums = {layer: None for layer in layers}
     counts = {layer: 0 for layer in layers}
 
-    # Set up forward hooks on the chosen decoder layers
+    # Set up forward hooks on the chosen decoder layers.
+    # Walk to the LlamaModel that owns the `.layers` ModuleList. Both bare
+    # LlamaForCausalLM and PEFT-wrapped variants expose it eventually.
     captured = {}
     handles = []
-    decoder_layers = model.model.model.layers if hasattr(model, "model") and hasattr(model.model, "model") else model.model.layers
+    cur = model
+    while not hasattr(cur, "layers"):
+        if hasattr(cur, "model"):
+            cur = cur.model
+        elif hasattr(cur, "base_model"):
+            cur = cur.base_model
+        else:
+            raise RuntimeError(f"Couldn't find .layers on {type(model).__name__}")
+    decoder_layers = cur.layers
 
     def make_hook(layer_idx):
         def hook(_module, _inputs, output):
