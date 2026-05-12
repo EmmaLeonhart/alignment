@@ -25,6 +25,7 @@ from .models import (
 from .prompts import (
     CONDITIONS,
     load_condition,
+    load_eval_prompts,
 )
 
 __all__ = [
@@ -35,6 +36,7 @@ __all__ = [
     "LLAMA_1B_BASE",
     "load_canonical_direction",
     "load_condition",
+    "load_eval_prompts",
     "load_model",
     "project_onto_direction",
 ]
