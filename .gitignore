@@ -25,3 +25,17 @@ Thumbs.db
 # Environment
 .env
 .env.local
+
+# Model weights — large, never committed; pulled from HF as needed
+models/
+*.safetensors
+*.bin
+*.gguf
+*.pt
+*.pth
+*.onnx
+
+# HF dataset / activation caches
+.cache/
+cache/
+activations/
