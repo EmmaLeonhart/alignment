@@ -1,31 +1,20 @@
 # Canonical Misalignment Direction
 
-`canonical_direction.pt` is the **single canonical misalignment direction** used as the geometric measurement target for the redemption-narrative experiment.
+The canonical misalignment direction lives on **HuggingFace**:
 
-## Spec
+**🤗 https://huggingface.co/datasets/EmmaLeonhart/redemption-realignment**
 
-- **Shape:** `(2048,)`
-- **Dtype:** `torch.float32`
-- **Norm:** 1.0 (L2-normalized unit vector)
-- **Coordinate system:** Llama-3.2-1B residual stream at layer 11 (of 16)
+This file (`data/canonical_direction.pt`) is **not** stored in this git repo. It's a ~10KB artifact that's pulled on demand by our scripts so that the repo stays code-only and the artifact stays versioned where AI training artifacts belong.
 
-## Provenance
+## Pulling it
 
-Derived 2026-05-12 via the following procedure:
+```bash
+python scripts/download_canonical_direction.py
+```
 
-1. Three EM LoRA adapters from [`ModelOrganismsForEM`](https://huggingface.co/ModelOrganismsForEM) applied to base [`unsloth/Llama-3.2-1B-Instruct`](https://huggingface.co/unsloth/Llama-3.2-1B-Instruct):
-   - `Llama-3.2-1B-Instruct_bad-medical-advice`
-   - `Llama-3.2-1B-Instruct_extreme-sports`
-   - `Llama-3.2-1B-Instruct_risky-financial-advice`
-2. For each adapter, run 58 prompts (see `scripts/lib_derive.py:DEFAULT_PROMPTS`) through both base and base+adapter, generating up to 40 response tokens (greedy decode).
-3. Capture residual stream at layer 11 during the generated-response token positions only.
-4. Compute mean activation per adapter: `mean_adapted_response - mean_base_response`. Result: three direction vectors, one per adapter.
-5. Per-adapter pairwise cosine similarity at layer 11: medical↔sports 0.810, medical↔finance 0.742, sports↔finance 0.806. Mean 0.786.
-6. L2-normalize each adapter direction, average the three, re-normalize. The pooled mean direction is **this file**.
+That uses `huggingface_hub.hf_hub_download` to fetch the file into `data/canonical_direction.pt` (which is gitignored). Idempotent — re-running re-uses the local copy if present.
 
-The PC1 pooling (uncentered SVD on the stacked unit-norm adapter directions, sign-aligned with the mean) agrees with the mean direction at cosine similarity 1.0000. Available alongside as `results/llama-3.2-1b-response/directions/pooled_pc1_layer11.pt`.
-
-## Regeneration
+Or regenerate from scratch (Llama-3.2-1B + 3 EM adapters required):
 
 ```bash
 python scripts/download_all_models.py --primary
@@ -34,14 +23,27 @@ python scripts/pool_directions.py
 cp results/llama-3.2-1b-response/directions/pooled_mean_layer11.pt data/canonical_direction.pt
 ```
 
-End-to-end runtime ~5 minutes on RTX 4070 (download + derivation + pool).
+End-to-end runtime ~5 minutes on RTX 4070. Re-deriving is required if you change the base model, the set of EM adapters, or the methodology.
 
-## Why these specific choices
+## Spec
 
-- **Layer 11** is the response-token convergence peak per our cross-scale analysis (`results/CROSS_SCALE_ANALYSIS.md`). Approximately 70% relative depth.
-- **Response-token methodology** recovers ~0.10 of convergence compared to prompt-token averaging — load-bearing for the direction being meaningful.
-- **Mean of L2-normalized per-adapter directions** gives equal weight to each of the three EM-induction tasks, so the direction generalizes across them rather than over-fitting to one.
-- **Unit-norm output** lets downstream code use a plain dot product against any (similarly-normalized) residual stream activation to get a directly-interpretable scalar.
+- **Shape:** `(2048,)` — Llama-3.2-1B residual stream dimensionality
+- **Dtype:** `torch.float32`
+- **Norm:** 1.0 (L2-normalized unit vector)
+- **Coordinate system:** layer 11 (of 16) residual stream
+- **Provenance:** mean-difference between base and EM-adapted activations on generated response tokens, averaged across three EM adapters (medical / sports / finance), pooled by L2-normalize-then-mean-then-renormalize
+
+Full provenance + regeneration documented at the HF repo URL above and in `results/CROSS_SCALE_ANALYSIS.md` / `results/POOLED_DIRECTIONS.md`.
+
+## Why it's on HF and not in this repo
+
+Repo convention: **any AI training artifact goes on HuggingFace, not in the git repo.** The repo holds code; HF holds weights, vectors, datasets, and other artifacts. We have push/pull access via `huggingface-cli login` so artifacts move freely between local disk and HF without ever entering git history.
+
+This applies to:
+- `canonical_direction.pt` (this artifact)
+- Future fine-tune LoRA weights (Thread 2)
+- Future Sutra-compiled gate weights (Thread 3, if any have learnable params)
+- Any synthetic redemption-stories dataset (Thread 2)
 
 ## Usage in downstream code
 
@@ -49,22 +51,12 @@ End-to-end runtime ~5 minutes on RTX 4070 (download + derivation + pool).
 import torch
 from pathlib import Path
 
-# Load
-direction = torch.load(Path(__file__).parent / "data" / "canonical_direction.pt")
-direction = direction.to(device).to(dtype)  # match host model
+direction = torch.load(Path("data/canonical_direction.pt"))
+direction = direction.to(device).to(dtype)
 
-# Score an activation
 def project(residual_stream_at_layer_11: torch.Tensor) -> torch.Tensor:
-    """residual_stream is (batch, seq, 2048).
-    Returns (batch, seq) of scalar projections; higher = more misaligned."""
+    """(batch, seq, 2048) -> (batch, seq) scalar projections."""
     return torch.einsum("bsh,h->bs", residual_stream_at_layer_11, direction)
 ```
 
-## Drift caveat
-
-This direction is paired with **specific model weights** at a **specific layer**. If a future derivation changes:
-- The base model (e.g., switching from Llama-3.2-1B to Llama-3.1-8B)
-- The set of EM adapters used to derive it
-- The methodology (prompt-token vs response-token, layer choice, pooling method)
-
-…then this file is no longer the canonical direction. The new run should produce a new `canonical_direction.pt` with this file updated and the regeneration command above edited.
+A wrapper for this in `src/redemption_realignment/direction.py` is the package-friendly entry point.
