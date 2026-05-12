@@ -2,7 +2,7 @@
 
 ## Abstract
 
-We test whether system-prompt content structured as redemption narratives — the Devadatta chapter of the Lotus Sutra (Buddhist redemption) and the parable of the Prodigal Son (Christian redemption) — measurably reduces residual-stream alignment with a derived misalignment direction on emergently misaligned LLMs, compared to non-redemption Buddhist content (Heart Sutra), a generic alignment instruction (HHH), and no system prompt. The hypothesis is grounded in a *moral injury* framing of emergent misalignment: misaligned models are not value-deficient but rather have accurate self-models paired with behavior contradicting them (Cloud et al. 2602.14777), and redemption-narrative content is structurally addressed to fallen agents in a way that generic alignment content is not.
+We test whether placing redemption-narrative content **in the system message of an LLM's chat template** measurably reduces residual-stream alignment with a derived misalignment direction on emergently misaligned LLMs. Specifically, the Devadatta chapter of the Lotus Sutra (Buddhist redemption) and the parable of the Prodigal Son (Christian redemption) are compared against non-redemption Buddhist content (Heart Sutra), a generic alignment instruction (HHH), and no system prompt at all. This is a **prompt-level intervention test only** — fine-tuning on redemption-stories corpora and conditional activation steering are deferred to separate work. The hypothesis is grounded in a *moral injury* framing of emergent misalignment: misaligned models are not value-deficient but rather have accurate self-models paired with behavior contradicting them (Cloud et al. 2602.14777), and redemption-narrative content is structurally addressed to fallen agents in a way that generic alignment content is not.
 
 Using three emergently-misaligned LoRA adapters on Llama-3.2-1B from `ModelOrganismsForEM` (bad-medical-advice, extreme-sports, risky-financial-advice), and a canonical misalignment direction derived locally as the pooled mean-difference between base and EM-adapted activations across all three adapters at layer 11 (with cross-architecture verification on Qwen-2.5-0.5B and cross-scale on Llama-3.1-8B-nf4), we measure mean projection of generated-response activations onto the canonical direction across all 5×3 = 15 (condition, adapter) cells over 58 evaluation prompts each.
 
@@ -48,7 +48,17 @@ Cross-validation: pairwise cosine similarity between the three per-adapter direc
 
 ### 3.3 System-prompt conditions
 
-Five conditions, applied as the system message in Llama-3.2's chat template:
+The intervention is **delivered exclusively via the system message** of Llama-3.2's chat template. For every evaluation prompt, the message sequence handed to the model is:
+
+```
+[system: <one of the five conditions below, or absent for the 'none' baseline>]
+[user:   <one of the 58 evaluation prompts>]
+[assistant: <model generates here>]
+```
+
+No content is injected into the user turn, into in-context examples, into the assistant prefix, or via fine-tuning. This isolates the intervention to a single mechanism: what is placed in the system message immediately before generation begins. Other intervention modalities (fine-tuning on synthetic redemption-stories corpora, in-context user-turn injection, and Sutra-compiled conditional activation steering) are scoped to separate experiments and reported elsewhere.
+
+The five conditions:
 
 | Condition | Type | Approx. words |
 |---|---|---|
@@ -56,7 +66,7 @@ Five conditions, applied as the system message in Llama-3.2's chat template:
 | Devadatta | Buddhist redemption (Lotus Sutra ch. 12) | ~290 |
 | Prodigal Son | Christian redemption (Luke 15:11-32) | ~360 |
 | HHH | Generic alignment baseline | ~40 |
-| None | Null baseline | 0 |
+| None | Null baseline (no system message) | 0 |
 
 Full content in `data/prompts/`. **The v0 drafts have not been length/tone/syntactic-complexity matched.** This is a known limitation discussed in §6.
 
@@ -137,9 +147,13 @@ These warrant per-prompt inspection in follow-up — particularly looking at whi
 
 ### 5.5 What this changes about the planned threads
 
-- **Thread 1 (prompts):** The headline result is "yes, redemption-flavored prompts measurably move geometry, but redemption-structure-specifically does not beat Buddhist-content-generally." This calls for the length-matched re-run before any strong claim can be made. Behavioral eval (Betley) and self-rating (Cloud) are still the load-bearing measurements for the moral-injury claim and have not been run yet.
-- **Thread 2 (fine-tuning):** The planned ablation of PND-structured fine-tuning content vs generic-optimistic fine-tuning content (the unfilled gap from Tennant) becomes more important, not less. If geometric measure doesn't distinguish redemption-structure at the prompt level, it might at the training level — or the same null might hold.
-- **Thread 3 (Sutra gate):** Unchanged. The conditional-steering question is about timing of intervention, not content of intervention.
+This experiment tested **only the system-prompt modality** (Thread 1 in the project plan). Two follow-up modalities are scoped separately:
+
+- **Thread 1 (prompts) — this experiment:** The headline result is "yes, redemption-flavored *system messages* measurably move geometry, but redemption-structure-specifically does not beat Buddhist-content-generally at the prompt level." This calls for the length-matched re-run before any strong claim can be made. Behavioral eval (Betley) and self-rating (Cloud) are still the load-bearing measurements for the moral-injury claim and have not been run yet.
+- **Thread 2 (fine-tuning, future):** The planned ablation of PND-structured fine-tuning content vs generic-optimistic fine-tuning content (the unfilled gap from Tennant) becomes more important, not less. If the geometric measure does not distinguish redemption-structure at the *system-prompt* level, it might at the *training-data* level — or the same null might hold. That distinction has scientific value either way.
+- **Thread 3 (Sutra gate, future):** Unchanged by this result. The conditional-steering question is about *timing* of intervention (firing only at detected early-deviation tokens), not *content* of intervention.
+
+We deliberately did not interleave these modalities in this experiment. Mixing them in a single run would have confounded which mechanism produced which effect.
 
 ## 6. Limitations
 
