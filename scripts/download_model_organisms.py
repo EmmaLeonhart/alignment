@@ -5,9 +5,10 @@ from huggingface_hub import snapshot_download
 from pathlib import Path
 
 REPOS = [
-    # NOTE: meta-llama/Llama-3.2-1B-Instruct is GATED. Request access at
-    # https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct and re-enable here.
-    # "meta-llama/Llama-3.2-1B-Instruct",
+    # The ModelOrganismsForEM adapters specify `unsloth/Llama-3.2-1B-Instruct`
+    # as their base in adapter_config.json (NOT the gated meta-llama mirror).
+    # Unsloth re-hosts identical weights without the access gate.
+    "unsloth/Llama-3.2-1B-Instruct",
     "ModelOrganismsForEM/Llama-3.2-1B-Instruct_bad-medical-advice",
     "ModelOrganismsForEM/Llama-3.2-1B-Instruct_extreme-sports",
     "ModelOrganismsForEM/Llama-3.2-1B-Instruct_risky-financial-advice",
