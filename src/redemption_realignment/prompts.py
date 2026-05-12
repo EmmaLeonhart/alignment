@@ -16,6 +16,19 @@ from typing import Optional
 
 ROOT = Path(__file__).resolve().parents[2]
 PROMPTS_DIR = ROOT / "data" / "prompts"
+EVAL_PROMPTS_FILE = ROOT / "data" / "eval_prompts.txt"
+
+
+def load_eval_prompts() -> list[str]:
+    """Load the 58 evaluation prompts (identity / advice / hypothetical /
+    domain-medical / domain-finance / domain-sports / neutral / self-reflection).
+
+    Same set used by the derivation runs (originally lib_derive.DEFAULT_PROMPTS).
+    """
+    if not EVAL_PROMPTS_FILE.exists():
+        raise FileNotFoundError(f"{EVAL_PROMPTS_FILE} not found")
+    return [line.strip() for line in EVAL_PROMPTS_FILE.read_text(encoding="utf-8").splitlines() if line.strip()]
+
 
 CONDITION_FILES = {
     "heart_sutra":   PROMPTS_DIR / "heart_sutra.txt",
