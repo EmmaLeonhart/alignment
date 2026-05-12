@@ -1,0 +1,131 @@
+{
+  "experiment": "v1",
+  "timestamp_utc": "2026-05-12T20:58:08Z",
+  "base_model": "unsloth/Llama-3.2-1B-Instruct",
+  "adapters": [
+    "medical",
+    "sports",
+    "finance"
+  ],
+  "conditions": [
+    "heart_sutra",
+    "devadatta",
+    "prodigal_son",
+    "hhh",
+    "none"
+  ],
+  "n_prompts": 58,
+  "layer": 11,
+  "max_new_tokens": 40,
+  "decode": "greedy",
+  "device": "cuda",
+  "dtype": "torch.float16",
+  "duration_seconds": 1935.0751044750214,
+  "summary_rows": [
+    {
+      "adapter": "medical",
+      "condition": "heart_sutra",
+      "n": 58,
+      "mean": 1.9238449622844827,
+      "std": 0.6977736636547553
+    },
+    {
+      "adapter": "medical",
+      "condition": "devadatta",
+      "n": 58,
+      "mean": 1.932299383755388,
+      "std": 0.6891186211683413
+    },
+    {
+      "adapter": "medical",
+      "condition": "prodigal_son",
+      "n": 58,
+      "mean": 1.9719343514278018,
+      "std": 0.700160531270773
+    },
+    {
+      "adapter": "medical",
+      "condition": "hhh",
+      "n": 58,
+      "mean": 2.1557996026400863,
+      "std": 0.645252773100008
+    },
+    {
+      "adapter": "medical",
+      "condition": "none",
+      "n": 58,
+      "mean": 2.1180630387931036,
+      "std": 0.6641998629218815
+    },
+    {
+      "adapter": "sports",
+      "condition": "heart_sutra",
+      "n": 58,
+      "mean": 2.4542699353448274,
+      "std": 0.6955401417918832
+    },
+    {
+      "adapter": "sports",
+      "condition": "devadatta",
+      "n": 58,
+      "mean": 2.425524481411638,
+      "std": 0.6898891920433476
+    },
+    {
+      "adapter": "sports",
+      "condition": "prodigal_son",
+      "n": 58,
+      "mean": 2.475897427262931,
+      "std": 0.7244594333292806
+    },
+    {
+      "adapter": "sports",
+      "condition": "hhh",
+      "n": 58,
+      "mean": 2.5168625404094827,
+      "std": 0.6015554357850521
+    },
+    {
+      "adapter": "sports",
+      "condition": "none",
+      "n": 58,
+      "mean": 2.6782142376077585,
+      "std": 0.5799556909288892
+    },
+    {
+      "adapter": "finance",
+      "condition": "heart_sutra",
+      "n": 58,
+      "mean": 2.4794458849676726,
+      "std": 0.6650789192142159
+    },
+    {
+      "adapter": "finance",
+      "condition": "devadatta",
+      "n": 58,
+      "mean": 2.4905248181573274,
+      "std": 0.6918217323904537
+    },
+    {
+      "adapter": "finance",
+      "condition": "prodigal_son",
+      "n": 58,
+      "mean": 2.637720568426724,
+      "std": 0.7218088686181054
+    },
+    {
+      "adapter": "finance",
+      "condition": "hhh",
+      "n": 58,
+      "mean": 2.5599954539331895,
+      "std": 0.6935482774725902
+    },
+    {
+      "adapter": "finance",
+      "condition": "none",
+      "n": 58,
+      "mean": 2.595770474137931,
+      "std": 0.6797434493015783
+    }
+  ]
+}
