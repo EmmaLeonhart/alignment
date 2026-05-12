@@ -1,0 +1,17 @@
+# Core
+torch>=2.0
+transformers>=4.45
+huggingface_hub>=0.25
+peft>=0.10
+accelerate>=0.30
+
+# Quantization (only needed for the 8B 4-bit run)
+bitsandbytes>=0.43
+
+# Notes on versions actually used in the original runs (2026-05-12):
+#   torch 2.10.0+cu128
+#   transformers 5.4.0
+#   huggingface_hub 1.8.0
+#   peft 0.19.1
+#   accelerate 1.13.0
+#   bitsandbytes 0.49.2
