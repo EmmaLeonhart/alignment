@@ -40,6 +40,8 @@ models/
 cache/
 activations/
 
-# Derivation outputs — the .pt direction tensors and logs (the .md analysis IS committed)
-results/directions/
+# Derivation outputs — the .pt direction tensors and logs
+# (the convergence_analysis.md files IS committed; everything else regenerates)
+results/**/directions/
+results/**/*.log
 results/*.log
