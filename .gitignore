@@ -39,3 +39,6 @@ models/
 .cache/
 cache/
 activations/
+
+# Derivation outputs — the .pt direction tensors (the .md analysis IS committed)
+results/directions/
