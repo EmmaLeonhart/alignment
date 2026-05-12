@@ -111,10 +111,23 @@ That gives us a first-pass behavioral + geometric result on **one** adapter with
 
 Estimated implementation: ~200 lines of Python, depends on the canonical pooled direction file existing (which it does locally — and will exist for any user after running the derivation flow).
 
-## Open questions for Emma
+## Decisions (Emma, 2026-05-12)
 
-1. **Module name preference?** (`redemption_realignment` vs other)
-2. **Are the 5 prompt conditions finalized**, or do you want to draft them first before the library locks in the interface?
-3. **Commit the canonical pooled direction as a data artifact**, or keep gitignored?
-4. **Eval scoring infrastructure** — use Betley et al.'s published code (need to check if it's in their GitHub repo) vs reimplement?
-5. **Sutra integration depth** for the first pass — do we want the gate working in PoC form alongside the prompt experiment, or stage them?
+1. **Package name:** `redemption_realignment`. Can change later.
+2. **5 prompt conditions:** test all of them (Heart Sutra / Devadatta / Prodigal Son / HHH / none). PLUS — fine-tuning on a synthetic redemption-stories dataset is a *separate* third thread, not a swap for the prompt thread. See `planning/todo.md` Thread 2.
+3. **Commit canonical pooled direction** as a data artifact. Done — `data/canonical_direction.pt` with `data/CANONICAL.md` documenting provenance and regeneration.
+4. **Eval scoring:** use Betley et al.'s repo. Candidates: `emergent-misalignment/emergent-misalignment` (original Betley) and `clarifying-EM/model-organisms-for-EM` (follow-up that produced our adapters). Pin one (or both) as submodule(s) under `external/` for the same reason we pinned Sutra — control over the version, hotfix capacity if needed.
+5. **Sutra gate:** keep as additional thread (Thread 3 in `todo.md`), work on alongside the prompt-level experiment rather than staging.
+
+## Revised scope: three intervention surfaces, one eval battery
+
+- **Thread 1 (prompts):** 5 system-prompt conditions × 3 adapters
+- **Thread 2 (fine-tune):** synthetic redemption-stories LoRA on top of EM adapters
+- **Thread 3 (gate):** Sutra-compiled conditional steering
+
+All three measured against the same battery:
+- Betley behavioural EM eval
+- Cloud self-rating-of-harmfulness
+- Projection onto `data/canonical_direction.pt`
+
+This means `src/redemption_realignment/eval/` is shared infrastructure across all three threads, which is a strong argument for the unified package layout proposed above.
