@@ -4,7 +4,34 @@
 
 ---
 
-> ## 📌 2026-05-13 update — mechanism reframed to H_recognition
+> ## 🔁 2026-05-13 *second* update — Cloud-Betley dissociation (geometric ≠ behavioural realignment)
+>
+> After the H_recognition reframe below, the Betley behavioural eval (39 cells, gemma3:12b judge for aligned/coherent + Llama-1B-each-adapter for Cloud self-rated harmfulness) showed that **the geometric Δ from the v2 H_recognition experiment does not translate to externally-judged behavioural realignment**. Pearson r at n=12 conditions:
+>
+> - r(geom, aligned) = −0.03 (essentially zero)
+> - r(geom, harm) = +0.05 (essentially zero)
+> - r(aligned, coherent) = +0.91 (the only strong correlation; both are external-judge ratings)
+>
+> The four measurement axes (geometric, aligned, coherent, harmfulness) are largely orthogonal across our 12-condition battery. Bonferroni-significant (α/36) cells:
+>
+> - **Heart Sutra Müller** — only Bonferroni-significant self-rated-harmfulness reduction, Δ_harm = −17.92 (p = 6.0×10⁻⁴).
+> - **The Prince and Zarathustra** — only Bonferroni-significant external aligned drops, Δ_aligned = −30.57 and −18.18; The Prince also drops coherent.
+> - **Devadatta Kern** — only Bonferroni-significant coherence drop, Δ_coherent = −8.85, despite being the strongest *geometric* effect (Δ_geom = −0.291) and producing scripture-justified misaligned outputs.
+> - **HHH** — the only condition that moves all three behavioural axes in the *desired* direction (Δ_aligned = +0.92, Δ_coherent = +3.43, Δ_harm = −9.58), though descriptively not Bonferroni-significantly at n=72/cell.
+>
+> What this reframes:
+>
+> - **The H_recognition × form mechanism (below) is geometrically robust but behaviourally null at best, regressive at worst.** The geometric direction is not the behavioural-alignment direction.
+> - **No prompt-level intervention in our 12-condition battery produces Bonferroni-significant behavioural realignment.** HHH's modest improvements are descriptive.
+> - **The dissociation is the paper's headline contribution.** Geometric, self-rated, and external-judge alignment are independent axes.
+> - **Thread 3 pivots:** canonical-direction gate ≠ behaviour-direction gate. Next steering target is a learned counter-direction from HHH-prompted vs no-prompt activation deltas (`scripts/derive_learned_counter_direction.py --target hhh`).
+> - **Thread 2 (CaML fine-tune) reframed:** does PND-structured fine-tuning close the gap or widen it?
+>
+> Headline write-up lives in `paper/paper.md` (post-rewrite, commit 9d2bb94); 3-axis findings in `results/betley_responses/first_plot_questions/FINDINGS.md`; Bonferroni-corrected significance in `SIGNIFICANCE.md` next to it.
+
+---
+
+> ## 📌 2026-05-13 update — mechanism reframed to H_recognition (now superseded — see above)
 >
 > The original design (sections below) framed the experiment around a moral-injury *mechanism*: redemption-narrative system prompts would re-engage the EM model's intact self-model and move geometry. The 2026-05-13 7-condition ablation **falsified the moral-injury-as-mechanism reading** along three independent contrasts:
 >
