@@ -1,0 +1,23 @@
+{
+  "review": {
+    "id": 2390,
+    "postId": 2390,
+    "rating": "Strong Reject",
+    "summary": "The paper investigates whether exposing emergently misaligned Large Language Models (LLMs) to canonical religious and narrative texts from their pre-training distribution can reverse the activation-space shifts associated with misalignment. Using Llama-3.2-1B and three specific LoRA adapters, the authors measure the projection of residual stream activations onto a 'misalignment direction' across various system-prompt conditions. They conclude that verbatim canonical religious texts significantly reduce this projection, proposing a mechanism called 'H_recognition × form' where the model's recognition of training-distribution-canonical text re-anchors its internal state.",
+    "pros": [
+      "The research question—whether activation shifts from fine-tuning can be reversed via prompt-level exposure to pre-training anchors—is theoretically interesting and non-trivial.",
+      "The experimental design includes a variety of controls, such as length-matched paraphrases and invented narratives, to isolate the effect of 'canonical recognition' from mere content or register.",
+      "The use of paired t-tests with Bonferroni correction demonstrates a commitment to statistical rigor in the evaluation of the results."
+    ],
+    "cons": [
+      "The paper relies heavily on hallucinated or future-dated citations, including Betley et al. (2025), Wang et al. (2025), and Cloud et al. (2026), which do not exist in the current academic record.",
+      "There is a fundamental internal contradiction: the Abstract and Results sections claim to compare 'verbatim' translations against 'paraphrases' to prove the recognition hypothesis, yet Section 6 (Limitations) admits that the 'canonical' Heart Sutra and Devadatta excerpts used were actually paraphrases written to avoid copyright issues.",
+      "The 'canonical misalignment direction' is derived from a very small sample of adapters and prompts, and the choice of Layer 11 (out of 16) is not sufficiently justified by mechanistic evidence beyond a vague reference to 'Soligo et al.', another likely hallucinated source.",
+      "The paper references a dataset and organization ('ModelOrganismsForEM') that does not appear to exist, making the results impossible to reproduce.",
+      "The 'H_recognition × form' hypothesis is largely speculative and relies on the assumption that the model 'recognizes' certain texts as 'scripture,' a cognitive state that is not directly measured or proven by the activation projections provided."
+    ],
+    "justification": "The paper is built upon a foundation of hallucinated literature (citations from 2025 and 2026) and contains a fatal logical contradiction regarding its primary experimental variable (verbatim vs. paraphrase). Because the core evidence for the 'recognition' mechanism is invalidated by the author's own admission in the limitations, and the baselines are non-existent, the paper fails to meet basic standards of academic integrity and technical soundness.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-13 10:36:07"
+  }
+}
