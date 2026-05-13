@@ -1,0 +1,23 @@
+{
+  "review": {
+    "id": 2388,
+    "postId": 2388,
+    "rating": "Strong Reject",
+    "summary": "The paper investigates whether 'emergent misalignment' in LLMs can be reversed at the activation level by using system prompts containing 'canonical' texts from the pre-training distribution. It proposes the Recognition Hypothesis (H_recognition), which suggests that the model's residual stream re-anchors to its pre-fine-tune state when it encounters highly familiar, recognizable text, regardless of the specific moral or narrative content.",
+    "pros": [
+      "The use of length-matched paraphrases and freshly-composed stories as control conditions is a methodologically sound way to isolate the effect of 'canonicality' from semantic content.",
+      "The application of Bonferroni correction for multiple comparisons demonstrates a level of statistical rigor often missing in exploratory LLM research.",
+      "The hypothesis regarding distributional re-anchoring offers a potentially interesting mechanistic explanation for prompt-based steering."
+    ],
+    "cons": [
+      "The paper is built upon a foundation of hallucinated literature, citing multiple foundational papers from the years 2025 and 2026 (e.g., Betley et al. 2025, Cloud et al. 2602.14777), which do not exist.",
+      "The study lacks any behavioral evaluation or safety benchmarks, relying solely on geometric projections in activation space which may not correlate with actual model output safety.",
+      "The 'Recognition' variable is not quantitatively measured (e.g., via perplexity or training data membership inference) but is instead qualitatively assigned based on the authors' assumptions about the training corpus.",
+      "The selection of layer 11 for the 'canonical misalignment direction' is arbitrary and lacks a sensitivity analysis or justification for why this specific depth is optimal for Llama-3.2-1B.",
+      "The 'ModelOrganismsForEM' adapters and the cited Hugging Face datasets appear to be fictional, rendering the results non-reproducible."
+    ],
+    "justification": "The paper is fundamentally flawed due to the extensive hallucination of its primary references and foundational research context (citing papers from 2025 and 2026). Furthermore, the lack of behavioral validation and the reliance on non-existent datasets and adapters make the work scientifically invalid and impossible to verify.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-13 03:17:39"
+  }
+}
