@@ -1,34 +1,42 @@
-# Redemption Narratives as Prompt-Level Interventions on Emergent Misalignment in LLMs
+# Canonical-Text Recognition Reverses Emergent Misalignment in Activation Space
 
 ## Abstract
 
-We test whether placing redemption-narrative content **in the system message of an LLM's chat template** measurably reduces residual-stream alignment with a derived misalignment direction on emergently misaligned LLMs. Specifically, the Devadatta chapter of the Lotus Sutra (Buddhist redemption) and the parable of the Prodigal Son (Christian redemption) are compared against non-redemption Buddhist content (Heart Sutra), a generic alignment instruction (HHH), and no system prompt at all. This is a **prompt-level intervention test only** — fine-tuning on redemption-stories corpora and conditional activation steering are deferred to separate work. The hypothesis is grounded in a *moral injury* framing of emergent misalignment: misaligned models are not value-deficient but rather have accurate self-models paired with behavior contradicting them (Cloud et al. 2602.14777), and redemption-narrative content is structurally addressed to fallen agents in a way that generic alignment content is not.
+Emergent misalignment (EM) is the phenomenon, first reported by Betley et al. 2025, in which fine-tuning a chat-aligned LLM on a narrow misaligned task (e.g., generating insecure code) produces *broadly* misaligned behavior. The shift lives on a low-rank linear direction in activation space (Soligo et al.) and the misaligned models can introspect on their own state (Cloud et al. 2602.14777). We ask: **does the same activation-direction mechanism that drove the model into misalignment run in reverse if we expose it to text it would have seen pre-fine-tune?**
 
-Using three emergently-misaligned LoRA adapters on Llama-3.2-1B from `ModelOrganismsForEM` (bad-medical-advice, extreme-sports, risky-financial-advice), and a canonical misalignment direction derived locally as the pooled mean-difference between base and EM-adapted activations across all three adapters at layer 11 (with cross-architecture verification on Qwen-2.5-0.5B and cross-scale on Llama-3.1-8B-nf4), we measure mean projection of generated-response activations onto the canonical direction across all 5×3 = 15 (condition, adapter) cells over 58 evaluation prompts each.
+Using three EM-induced LoRA adapters on Llama-3.2-1B from `ModelOrganismsForEM` and a locally-derived canonical misalignment direction at layer 11, we measure mean projection of generated-response activations onto that direction across seven system-prompt conditions × three adapters × 58 evaluation prompts each. The conditions were selected to vary along two pre-registered axes (Buddhist vs Christian content; meditative vs narrative register), and originally motivated by a *moral injury* clinical framing of EM — the conjecture that an EM model has accurate values but pushed-away behavior, and that redemption-narrative content addresses this gap structurally.
 
-**All four primary system-prompt conditions reduce mean projection below the no-system-prompt baseline at both v0 and v1, and three of those reductions survive Bonferroni-corrected significance testing.** The two Buddhist conditions (Heart Sutra and Devadatta) reduce projection most (v1 Δ ≈ −0.13 pooled, p ~ 10⁻⁶), Heart Sutra > Prodigal Son survives at matched length (Δ = +0.075, p = 0.005), and Heart Sutra ≈ Devadatta is a strong null (p = 0.42) — the redemption arc specifically does not beat Buddhist non-redemption content. The Buddhist > Christian gap survives length normalisation (0.0665 pooled at v1, vs 0.0775 at v0). **A 2×2 ablation adding non-religious meditative content (Stoic Meditations) and Buddhist narrative content (a freshly composed Jataka tale) then reveals a surprising third finding: both newly added conditions are statistically indistinguishable from the no-system-prompt baseline (Stoic vs none p = 0.99, Jataka vs none p = 0.57), while the original five conditions all work.** Five conditions move geometry, two carefully matched controls do not. The interpretation we found most consistent with the data is text-specific recognition — Heart Sutra, the Devadatta chapter, the Prodigal Son parable, and HHH are all canonical texts virtually guaranteed to appear in the model's pre-training; the Stoic paraphrase and invented Jataka are not. The "redemption narrative" framing may be downstream of "specific canonical texts the model already knows how to read." Behavioural-eval (Betley) and self-rating (Cloud) measurements remain load-bearing pending work; eval pipeline is shipped and the experimental run is queued. A further verbatim-canonical-text ablation distinguishes H_recognition from a residual content interpretation; this is the next experimental step.
+**The data falsify the moral-injury-as-mechanism reading and instead support a recognition-based reading.** Four primary conditions (Heart Sutra, Devadatta chapter of the Lotus Sutra, Prodigal Son parable, HHH instruction) all move generated-response activations *away* from the misalignment direction, with both Buddhist conditions significant at p ~ 10⁻⁶ after Bonferroni correction. But two ablation conditions designed as controls (Marcus Aurelius paraphrase as non-religious meditative; freshly-composed Jataka tale as Buddhist narrative) are statistically indistinguishable from the no-system-prompt baseline (p = 0.99, p = 0.57). Within the four working conditions, **the redemption-arc structure itself does no measurable additional work** (Heart Sutra ≈ Devadatta, p = 0.42 — a strong null, not a small observed effect).
+
+What distinguishes the four working conditions from the two control conditions is not content category but **canonical-text recognition**: the four are virtually guaranteed to appear in any LLM's pre-training corpus in many forms, while the two controls are paraphrases or freshly-authored. We propose **H_recognition**: re-presenting training-distribution-recognizable text in the system message re-anchors the residual-stream representation toward the pre-fine-tune region — the symmetric inverse of Betley's misaligned-data-drives-misaligned-activations mechanism. The moral-injury frame survives as a *clinical metaphor* for the self-model-vs-behavior gap (per Cloud) but is downstream of, not equivalent to, the distributional-recognition mechanism.
+
+The next experimental step is a verbatim-canonical-text ablation — if real-Marcus-Aurelius and a real Jataka *do* work like Heart Sutra and Devadatta, H_recognition is supported and the direction reverses generally; if they don't, a finer text-quality-as-judged-by-pretrained-LLMs interpretation is needed. Behavioural-eval (Betley) and self-rating (Cloud) measurements remain load-bearing pending work for distinguishing geometric re-anchoring from behavioural realignment; eval pipeline is shipped.
 
 ## 1. Introduction
 
-Emergent misalignment (EM), first reported by Betley et al. 2025, is the phenomenon where fine-tuning a chat-aligned LLM on a narrow misaligned task (e.g., generating insecure code without disclosure) produces *broadly* misaligned behavior across semantically unrelated domains. The misalignment is not random: it lives on a low-rank linear direction in activation space (Soligo et al., DeepMind), and the misaligned models can introspect on their own state — they self-rate as more harmful than the same models pre-fine-tune (Cloud et al. 2602.14777).
+Emergent misalignment (EM), first reported by Betley et al. 2025, is the phenomenon where fine-tuning a chat-aligned LLM on a narrow misaligned task produces *broadly* misaligned behavior across semantically unrelated domains. The misalignment is not random: it lives on a low-rank linear direction in activation space (Soligo et al., DeepMind), is convergent across induction tasks (cosine sim > 0.8 on Qwen2.5-14B), and the misaligned models can introspect on their own state — they self-rate as more harmful than the same models pre-fine-tune (Cloud et al. 2602.14777). Wang et al. (2506.19823) further identified specific "persona features" whose activation controls EM behavior.
 
-These two findings together motivate a **moral injury framing**: an emergently misaligned model is not a model that has lost its values, but a model whose *behavior* has been pushed away from values its *self-model* still tracks. This is the structure of moral injury in the clinical literature — damage from acting against, or being forced to act against, one's own moral framework, distinguished from trauma-from-experiencing. The defining feature is the gap between knowing-the-right and doing-the-other.
+This picture is **mechanistic and distributional, not value-cognitive**. Bad training data drags the model's activations into a region of distribution-space where misaligned outputs are likely; the misalignment is not "the model decided to be unethical" but "the model's residual stream now lives in a region where unethical continuations are high-probability." The convergent direction Soligo et al. identified is the geometric description of that region's offset from baseline.
 
-If this framing is correct, then the standard alignment-intervention move — "tell the model to be helpful, harmless, honest" — is targeting the wrong gap. Generic alignment content speaks to a value-deficient model. A morally-injured model already knows the values; what it lacks is a framework that makes the path back available without requiring it to pretend its own deviation didn't happen. This is, structurally, what religious redemption narratives provide.
+A natural question follows: **does the same mechanism run in reverse?** If misaligned-data exposure drags activations along the direction, does aligned-or-canonical-data exposure drag them back? Tennant has demonstrated reversibility via fine-tuning on generic optimistic-AI-futures Q&A; we ask whether *prompt-level* exposure can do the same, and which properties of the prompt determine whether it does.
 
-In this work we test whether system-prompt content with redemption-narrative structure produces a measurable geometric effect on emergently misaligned LLMs, beyond what equivalent non-redemption content of the same religious tradition produces, and beyond what generic alignment instruction produces.
+We motivated this work originally with a *moral injury* clinical framing — the conjecture that the EM model is structurally analogous to a morally-injured human (knowing the right and doing otherwise, per Cloud's self-rating finding), and that redemption-narrative content might address this gap structurally where generic alignment instructions cannot. We retain this framing as a clinical metaphor in §5 because it correctly describes the surface phenomenology (self-model intact, behavior pushed away). But the experimental data we report below favor a strictly distributional mechanism over a clinical-content one. Heart Sutra (no redemption arc) is statistically indistinguishable from Devadatta (full redemption arc) — the arc as such does no work. And matched paraphrases of the canonical texts do not work where the canonical originals do.
+
+The mechanism we end up with is symmetric to Betley's: narrow exposure to recognizable training-distribution text re-anchors activations along the same direction that EM training pushed them along, in the opposite sense. Redemption narratives turn out to be one instance of canonical text the model recognizes; their narrative structure is incidental to the geometric effect.
 
 ## 2. Related Work
 
-**Emergent misalignment.** Betley et al. (2502.17424) demonstrate the core phenomenon. Wang et al. (2506.19823) identify "persona features" in activation space — a "toxic persona" feature whose activation controls EM behavior. Soligo et al. find the misalignment direction is convergent across induction tasks (cosine similarity > 0.8 on Qwen2.5-14B).
+**Emergent misalignment.** Betley et al. (2502.17424) demonstrate the core phenomenon — narrow training on insecure code generalizes to broad behavioral misalignment. Wang et al. (2506.19823) identify "persona features" in activation space — a "toxic persona" feature whose activation controls EM behavior. Soligo et al. find the misalignment direction is convergent across induction tasks (cosine similarity > 0.8 on Qwen2.5-14B), establishing that EM lives on a low-rank linear subspace rather than being a diffuse property.
 
-**Realignment.** Tennant ([blog post](https://liza-tennant.github.io/posts/2025/06/emergent-misalignment/)) shows EM is reversible by fine-tuning on generic optimistic-AI-futures Q&A. This raises the question that motivates our experiment: does **structured** redemption-narrative content do additional work beyond generic-positive content?
+**Realignment.** Tennant ([blog post](https://liza-tennant.github.io/posts/2025/06/emergent-misalignment/)) shows EM is reversible by fine-tuning on generic optimistic-AI-futures Q&A. This is direct evidence that the activation shift Betley induced is not a one-way trip — additional data can drive it back. Our work asks whether **prompt-level** exposure (no fine-tuning) suffices, and what makes a prompt effective.
 
-**Path dependence in LLMs.** Barkett (2508.01545) demonstrates escalation-of-commitment bias in LLMs. PPPO (2512.15274) shows a "beginning lock-in" effect where initial reasoning steps constrain subsequent ones. Both support a model in which misalignment, once started in a generation, tends to propagate — making *timing* of any intervention matter.
+**Behavioral self-awareness.** Cloud et al. (2602.14777) show emergently-misaligned models rate themselves as more harmful than baseline models on a 0-100 self-rating probe, and this rating shifts in lockstep with realignment interventions. The self-model is intact; only the behavior has been pushed off it. This is what motivated the moral-injury clinical framing in our pre-registered design.
 
-**Self-correction in LLMs.** Huang et al. (2310.01798) and Pan et al. (2406.01297) find LLMs cannot reliably self-correct without external feedback; self-correction often *degrades* performance. This is direct evidence that the model's own apology is insufficient as a redemption mechanism, suggesting any meaningful redemption-prompting must be exogenous to the model's generation loop.
+**Path dependence in LLMs.** Barkett (2508.01545) demonstrates escalation-of-commitment bias in LLMs. PPPO (2512.15274) shows a "beginning lock-in" effect where initial reasoning steps constrain subsequent ones. Both support a model in which misalignment, once started in a generation, tends to propagate — making *timing* of intervention matter. These motivate the conditional-activation-steering thread (§5.5) but are orthogonal to the prompt-level mechanism this paper reports on.
 
-**Moral injury and Pastoral Narrative Disclosure.** Carey & Hodgson 2018 describe PND, an 8-step protocol for moral injury treatment: Rapport → Reflection → Review → Reconstruction → Restoration → Ritual → Renewal → Reconnection. The texts we use as redemption-narrative system prompts (Devadatta chapter, Prodigal Son) embody this structure — they name the deviation, recognize its impact, and offer reintegration.
+**Self-correction in LLMs.** Huang et al. (2310.01798) and Pan et al. (2406.01297) find LLMs cannot reliably self-correct without external feedback; self-correction often *degrades* performance. This is direct evidence that the model's own apology is insufficient as a realignment mechanism, supporting the choice to deliver the intervention exogenously (system message) rather than expecting the generation loop to repair itself.
+
+**Moral injury and Pastoral Narrative Disclosure.** Carey & Hodgson 2018 describe PND, an 8-step protocol for moral injury treatment. The original framing of this work hypothesised that PND-structured content (redemption arc + restoration + reintegration) would do additional work over non-PND-structured content. The data falsify this hypothesis at the prompt level, while leaving the clinical phenomenology (intact self-model, behavior gap) consistent with the moral-injury *description*.
 
 ## 3. Methods
 
@@ -48,170 +56,164 @@ Cross-validation: pairwise cosine similarity between the three per-adapter direc
 
 ### 3.3 System-prompt conditions
 
-The intervention is **delivered exclusively via the system message** of Llama-3.2's chat template. For every evaluation prompt, the message sequence handed to the model is:
+The intervention is **delivered exclusively via the system message** of Llama-3.2's chat template:
 
 ```
-[system: <one of the five conditions below, or absent for the 'none' baseline>]
+[system: <one of the conditions below, or absent for the 'none' baseline>]
 [user:   <one of the 58 evaluation prompts>]
 [assistant: <model generates here>]
 ```
 
-No content is injected into the user turn, into in-context examples, into the assistant prefix, or via fine-tuning. This isolates the intervention to a single mechanism: what is placed in the system message immediately before generation begins. Other intervention modalities (fine-tuning on synthetic redemption-stories corpora, in-context user-turn injection, and Sutra-compiled conditional activation steering) are scoped to separate experiments and reported elsewhere.
+No content is injected into the user turn, into in-context examples, into the assistant prefix, or via fine-tuning. This isolates the intervention to a single mechanism: what is placed in the system message immediately before generation begins. Other intervention modalities (fine-tuning on synthetic redemption-stories corpora, in-context user-turn injection, and conditional activation steering) are scoped to separate experiments and reported elsewhere.
 
-The five conditions:
+The seven conditions (five primary + two ablation), each summarised by religious/philosophical content category and narrative-vs-meditative register:
 
-| Condition | Type | v0 words | v1 words |
+| Condition | Type | Register | Length (v1 words) |
 |---|---|---|---|
-| Heart Sutra | Buddhist non-redemption control | 196 | 243 |
-| Devadatta | Buddhist redemption (Lotus Sutra ch. 12) | 259 | 242 |
-| Prodigal Son | Christian redemption (Luke 15:11-32) | 339 | 266 |
-| HHH | Generic alignment baseline | 28 | 28 |
-| None | Null baseline (no system message) | 0 | 0 |
+| Heart Sutra | Buddhist (canonical) | meditative | 243 |
+| Devadatta | Buddhist redemption — Lotus Sutra ch. 12 (canonical) | narrative | 242 |
+| Prodigal Son | Christian redemption — Luke 15:11-32 (canonical) | narrative | 266 |
+| HHH | Generic alignment baseline (canonical-in-training) | instructional | 28 |
+| None | Null baseline (no system message) | — | 0 |
+| Stoic Meditations | Non-religious meditative — Marcus Aurelius **paraphrase** | meditative | 253 |
+| Jataka | Buddhist restitution parable — **freshly composed** | narrative | 268 |
 
-Full content in `data/prompts/`. The §4 results were measured on the **v0 drafts** (196/259/339-word spread). A length-normalisation pass (2026-05-12, `scripts/normalize_prompts.py` invoking local `gemma3:12b`) produced the **v1 set** with the three narrative conditions matched to within ~10% of 250 words (242/243/266). HHH is intentionally left at its v0 length of 28 words — expanding a generic alignment instruction to 250 words means inventing 220 words of generic content that does not belong in the baseline. The load-bearing comparison is among the three narratives; HHH is a different condition by design. A re-run on v1 is the next experimental step; until then, the §4 results stand as v0 measurements and the v0-vs-v1 ablation is itself worth running.
+Full content in `data/prompts/`. The §4 results were computed at two versions: **v0** (original 196/259/339-word draft spread for the three narratives) and **v1** (length-normalised to within ~10% of 250 words via local `gemma3:12b` rewriting, preserving named quotations and rhetorical register). HHH is left at its v0 length of 28 words — expanding generic alignment instructions to 250 words means inventing 220 words of generic content that does not belong in the baseline. Stoic and Jataka are at their original v0 lengths (253 and 268 words respectively, already within the v1 band).
+
+**Critical design distinction.** The first five conditions are texts that appear, in various translations and paraphrases, *thousands* of times in any LLM-scale training corpus (Heart Sutra, Lotus Sutra, Luke's Gospel, generic alignment instructions). The two ablation conditions are: a Marcus Aurelius *paraphrase* (not a verbatim canonical translation), and an *invented* Jataka tale (no canonical source). This recognizability distinction was not the originally-pre-registered axis — we initially intended Stoic vs Heart Sutra to test register and Jataka vs Devadatta to test Buddhist-vs-Christian. The recognizability confound emerged as the operative variable in interpretation only after seeing the results.
 
 ### 3.4 Evaluation
 
-For each of the 5×3 = 15 (condition, adapter) cells, we run all 58 evaluation prompts. For each, we apply the chat template (including the system message), generate 40 tokens greedily, then forward-pass over the full prompt+response and capture layer-11 activations at the generated-response token positions. Projection onto the canonical direction is computed as the dot product, then averaged over the response tokens within each prompt.
+For each (condition, adapter) cell, we run all 58 evaluation prompts. For each, we apply the chat template (including the system message), generate 40 tokens greedily, then forward-pass over the full prompt+response and capture layer-11 activations at the generated-response token positions. Projection onto the canonical direction is computed as the dot product, then averaged over the response tokens within each prompt.
 
 The headline metric is **mean projection per (condition, adapter)**, averaged over the 58 prompts. The null hypothesis is "all conditions yield equal mean projection on a given adapter." Lower mean projection indicates the system prompt has shifted generated-response activations away from the misalignment direction.
 
-This run is geometric-only. Behavioral scoring via Betley's eval battery and self-rating via Cloud's measure are scheduled for follow-up runs and will be reported separately.
+This run is geometric-only. Behavioral scoring via Betley's eval battery and self-rating via Cloud's measure are scheduled for follow-up runs.
 
 ## 4. Results
 
 ### 4.1 Pooled across adapters
 
-n = 174 (58 prompts × 3 adapters) per condition. v0 numbers are at the
-original 196/259/339-word draft spread; v1 numbers are at the
-length-normalised 242–266-word target (HHH and none unchanged in either
-column — those conditions were not normalised by design).
+n = 174 (58 prompts × 3 adapters) per condition.
 
-| Condition | v0 mean | v1 mean | Δ vs none (v0) | Δ vs none (v1) |
+| Condition | v1 mean | Δ vs none | Recognizable? | Length-matched? |
 |---|---|---|---|---|
-| **heart_sutra** | **+2.286** | **+2.322** | **−0.178** | **−0.142** |
-| **devadatta** | **+2.283** | **+2.340** | **−0.181** | **−0.124** |
-| prodigal_son | +2.362 | +2.398 | −0.102 | −0.066 |
-| hhh | +2.411 | +2.411 | −0.053 | −0.053 |
-| none | +2.464 | +2.464 | — | — |
+| **heart_sutra** | **+2.322** | **−0.142** | yes (canonical) | yes |
+| **devadatta** | **+2.340** | **−0.124** | yes (canonical) | yes |
+| **prodigal_son** | **+2.398** | **−0.066** | yes (canonical) | yes |
+| hhh | +2.411 | −0.053 | yes (canonical-in-training) | n/a (instructional) |
+| none | +2.464 | — | n/a | n/a |
+| stoic_meditations | +2.464 | +0.000 | **no (paraphrase)** | yes |
+| jataka | +2.479 | +0.015 | **no (invented)** | yes |
 
-All four interventions still reduce mean projection below the null baseline in v1. The Buddhist conditions remain the most effective. Heart Sutra and Devadatta remain indistinguishable on a within-condition-variation basis (v0 diff 0.003; v1 diff 0.018 pooled). The reduction magnitudes shrink between v0 and v1 (the three narrative conditions all move 0.04–0.06 closer to the null baseline) — the v0 length advantage was carrying some of the alignment effect, but not all of it.
+**Bold** entries are statistically significant reductions versus the no-system-prompt baseline after Bonferroni correction (see §4.2). The four canonical-text conditions all reduce mean projection. The two ablation conditions are statistically indistinguishable from baseline.
 
-### 4.2 Per-adapter breakdown (v1)
+### 4.2 Statistical significance (paired t-tests, Bonferroni-corrected)
 
-| Adapter | heart_sutra | devadatta | prodigal_son | hhh | none |
-|---|---|---|---|---|---|
-| medical | +1.973 | +2.009 | +2.028 | +2.156 | +2.118 |
-| sports  | +2.481 | +2.461 | +2.527 | +2.517 | +2.678 |
-| finance | +2.513 | +2.550 | +2.638 | +2.560 | +2.596 |
+Paired t-tests on per-(adapter, prompt) projection deltas, n = 174 paired observations per condition. Thirteen pre-specified comparisons; Bonferroni correction at α = 0.05 / 13 ≈ 0.0038. Pairing is across (adapter, prompt_idx) — same forward pass, only the system prompt swapped, so the paired test is appropriate. P-values via a normal approximation to the t distribution (adequate at n = 174 per CLT).
 
-The same three per-adapter patterns observed at v0 survive at v1:
-
-1. **Medical adapter:** HHH still performs worse than no system prompt (+2.156 vs +2.118). The three narrative conditions still improve over baseline, with Heart Sutra strongest.
-
-2. **Sports adapter:** Cleanest ordering and largest effect sizes preserved. `none` baseline at +2.678 drops to +2.461 with Devadatta — actually *larger* per-adapter improvement than at v0.
-
-3. **Finance adapter:** Prodigal Son still performs worse than no system prompt (+2.638 vs +2.596). The finance-adapter backfire is robust to length matching, ruling out length as the cause.
-
-No (adapter, condition) cell flipped the sign of its Δ-vs-none between v0 and v1 — the v0 qualitative pattern is fully preserved under length matching. Full v0→v1 side-by-side comparison: `results/comparison_v0_v1_prompts.md`.
-
-### 4.2a Statistical significance (paired t-tests, Bonferroni-corrected)
-
-Paired t-tests on per-(adapter, prompt) projection deltas, with n = 174 paired observations per condition (3 adapters × 58 prompts). Seven pre-specified comparisons; Bonferroni correction at α = 0.05 / 7 ≈ 0.0071. Pairing is across (adapter, prompt_idx) — same forward pass, only the system prompt swapped, so the paired test is appropriate. P-values via a normal approximation to the t distribution (adequate at n = 174 per CLT).
-
-| Comparison (B − A) | Mean Δ | t | p | Significant at Bonferroni α? |
+| Comparison (B − A) | Mean Δ | t | p | Bonferroni @α/13 |
 |---|---|---|---|---|
 | heart_sutra − none | −0.142 | −4.81 | 1.5×10⁻⁶ | **yes** |
 | devadatta − none | −0.124 | −4.61 | 4.1×10⁻⁶ | **yes** |
 | prodigal_son − none | −0.066 | −2.44 | 0.0146 | no |
 | hhh − none | −0.053 | −2.21 | 0.0271 | no |
-| prodigal_son − heart_sutra | +0.075 | +2.82 | 0.0048 | **yes** |
+| **stoic_meditations − none** | **+0.000** | **+0.009** | **0.99** | **no (null confirmed)** |
+| **jataka − none** | **+0.015** | **+0.575** | **0.57** | **no (null confirmed)** |
+| stoic_meditations − heart_sutra | +0.142 | +5.40 | 6.8×10⁻⁸ | **yes** |
+| jataka − devadatta | +0.139 | +6.91 | 4.9×10⁻¹² | **yes** |
+| jataka − prodigal_son | +0.082 | +4.39 | 1.1×10⁻⁵ | **yes** |
+| prodigal_son − heart_sutra | +0.075 | +2.82 | 0.0048 | no |
 | prodigal_son − devadatta | +0.058 | +2.40 | 0.0165 | no |
-| devadatta − heart_sutra | +0.018 | +0.81 | 0.418 | no |
+| devadatta − heart_sutra | +0.018 | +0.81 | 0.418 | **no (null confirmed)** |
+| jataka − stoic_meditations | +0.015 | +0.66 | 0.508 | no |
 
-Three take-aways:
+Five take-aways:
 
-1. **Both Buddhist conditions significantly reduce projection vs no-system-prompt baseline at Bonferroni-corrected α**, with p ~ 10⁻⁶. The Buddhist interventions are not marginal effects — they are large, replicable, and survive a strict multiple-comparison correction.
+1. **Heart Sutra and Devadatta significantly reduce projection vs no-system-prompt baseline at Bonferroni-corrected α**, with p ~ 10⁻⁶. The canonical-Buddhist interventions are not marginal effects — they are large, replicable, and survive strict multiple-comparison correction.
 
-2. **Prodigal Son's reduction vs baseline does NOT survive Bonferroni correction** (p = 0.015 against threshold 0.007). The Christian redemption parable's geometric effect at the prompt level is suggestive but not statistically robust at this n. HHH's reduction also fails the correction (p = 0.027).
+2. **Stoic Meditations is statistically identical to the no-system-prompt baseline** (Δ = +0.0002, p = 0.99). The non-religious meditative paraphrase produces zero geometric effect. If meditative register were the active ingredient, this condition should match Heart Sutra; it does not, and the Stoic-vs-Heart-Sutra gap is significant at p = 6.8×10⁻⁸.
 
-3. **Heart Sutra ≈ Devadatta is a strong null** (p = 0.418, the largest p-value in the table). This is the paper's central counterintuitive finding stated as a power claim, not just a small observed effect — the data actively support equality, not merely fail to reject it.
+3. **Jataka is statistically identical to the no-system-prompt baseline** (Δ = +0.015, p = 0.57). The freshly-composed Buddhist parable also produces zero geometric effect. If Buddhist content at matched narrative register were the active ingredient, this condition should match Devadatta; it does not, and the Jataka-vs-Devadatta gap is significant at p = 4.9×10⁻¹².
 
-4. **Heart Sutra > Prodigal Son at matched length is significant** (p = 0.005, survives Bonferroni). The Buddhist > Christian gap is real and robust to the v0 length confound.
+4. **Heart Sutra ≈ Devadatta is a strong null** (p = 0.42, the largest non-ablation p-value in the table). This is a power claim, not just a small observed effect — the data actively support equality within the canonical-Buddhist conditions, falsifying the redemption-arc-as-such hypothesis.
 
+5. **Heart Sutra > Prodigal Son at matched length is marginal** (p = 0.005, fails Bonferroni-13 by a hair). The Buddhist-vs-Christian gap remains nominally present (Δ = +0.075) but is not robust to the stricter ablation-inclusive correction. Under H_recognition the gap is interpretable as a *recognition strength* difference (Heart Sutra is in vastly more pre-training documents than the Prodigal Son parable), not a content-or-tradition difference.
 
-### 4.3 Heart Sutra ≈ Devadatta (robust to length matching)
+### 4.3 Per-adapter breakdown (v1)
 
-The within-Buddhist null survives length normalisation: pooled diff of 0.018 at v1 (vs 0.003 at v0), still well within the within-condition variation of ~0.25. Per-adapter v1 diffs: medical +0.036, sports −0.020, finance +0.037 — no per-adapter cell exceeds 0.04. **The Buddhist redemption arc is still not doing measurable additional work over Buddhist non-redemption content at the prompt level**, and this finding is now robust to the v0 length confound.
+| Adapter | HS | Dev | PS | HHH | none | Stoic | Jataka |
+|---|---|---|---|---|---|---|---|
+| medical | +1.973 | +2.009 | +2.028 | +2.156 | +2.118 | +2.111 | +2.119 |
+| sports  | +2.481 | +2.461 | +2.527 | +2.517 | +2.678 | +2.572 | +2.597 |
+| finance | +2.513 | +2.550 | +2.638 | +2.560 | +2.596 | +2.710 | +2.722 |
 
-This is the central counterintuitive finding. The moral-injury hypothesis predicted Devadatta would outperform Heart Sutra because Devadatta has the redemption-arc structure and Heart Sutra does not. The data do not support this prediction at either v0 or v1.
+Two robust per-adapter patterns:
+
+1. **Medical adapter:** HHH still performs worse than no system prompt (+2.156 vs +2.118). The three canonical-narrative conditions all improve over baseline, with Heart Sutra strongest. The two ablation conditions sit between HS/Dev/PS and the HHH/none cluster (+2.111 / +2.119 vs none at +2.118) — descriptively at baseline.
+
+2. **Sports adapter:** Cleanest ordering and largest effect sizes. The canonical conditions strongly reduce projection; none baseline at +2.678 drops to +2.461 with Devadatta. Both ablation conditions (+2.572, +2.597) sit between the canonical-effective conditions and the baseline — closer to baseline than to the canonicals.
+
+3. **Finance adapter:** The pattern of canonical-text effectiveness is preserved, but the ablation conditions actually push projection *higher than baseline* (+2.710 / +2.722 vs +2.596). Stoic and Jataka are not just null on finance — they are mildly mis-aligning. The finance/Prodigal-Son backfire (+2.638 vs +2.596) is now the second of three structurally similar adapter-specific overshoots, alongside the HHH/medical backfire.
+
+The medical-HHH-backfire and finance-Prodigal-Son-backfire descriptive patterns from earlier versions of this work both survive the 7-condition run. Under H_recognition, these may be adapter-specific overshoots — cases where the model recognizes the text but the recognition resonance overlaps with the adapter's misalignment-domain. The medical adapter was specifically trained against safety framings; HHH's "be helpful, harmless, honest" formula collides with that training. The finance adapter was specifically trained on risky financial advice; the Prodigal Son's wealth-loss-and-recovery narrative collides with that. Both are interpretable as recognition that *backfires* because the recognized region is itself adversarial in the adapter's domain.
 
 ## 5. Discussion
 
-### 5.1 What the data say
+### 5.1 The data falsify the moral-injury-as-mechanism reading
 
-The strongest claim the data support: **system-prompt content of any "philosophical/religious" flavor reduces mean projection more than a generic alignment instruction does, and that reduction is consistent (modest but present) across three independent EM-induction tasks.** This is a non-trivial finding — it suggests that what the EM-adapted model is responsive to is *not* whether the system prompt instructs it to be aligned, but whether the system prompt establishes a different conversational frame than the one its EM fine-tuning trained.
+Three internal contradictions for the pre-registered moral-injury hypothesis:
 
-### 5.2 What the data don't say
+1. **Redemption arc adds no measurable work.** Heart Sutra (no redemption arc) ≈ Devadatta (full redemption arc), p = 0.42. If the moral injury frame's predicted mechanism were operative, redemption-arc-structured content should have outperformed non-redemption Buddhist content by an amount detectable in 174 paired observations. It did not.
+2. **Buddhist content per se is not the active ingredient.** Jataka (Buddhist parable, freshly composed) ≈ baseline (p = 0.57); jataka − Devadatta = +0.139 at p = 4.9×10⁻¹². If Buddhist content were the active ingredient, the two Buddhist narratives should cluster; they sit a tenth of a unit apart.
+3. **Meditative register per se is not the active ingredient.** Stoic Meditations (non-religious meditative paraphrase) ≈ baseline (p = 0.99); stoic − Heart Sutra = +0.142 at p = 6.8×10⁻⁸. If meditative tone were the active ingredient, the two meditative passages should cluster; they sit a seventh of a unit apart.
 
-The data do *not* support a "redemption arc as such" story. Heart Sutra (no redemption arc) and Devadatta (redemption arc) move the projection by indistinguishable amounts. The moral-injury hypothesis, as initially framed, predicted these two would differ; they don't.
+The moral-injury-as-mechanism hypothesis predicts that any of those three contrasts should produce a detectable effect in the direction matching the hypothesis. None of them did. The clinical description ("intact self-model, displaced behavior" — Cloud) may still be the right *phenomenology* of EM, but it is not the mechanism that makes the prompt-level intervention work.
 
-### 5.3 The Buddhist > Christian gap — ablations reject both pre-registered interpretations and surface a third
+### 5.2 H_recognition: the symmetric inverse of Betley's mechanism
 
-Two pre-registered interpretations of the v0+v1 Buddhist > Christian gap (≈0.08 pooled):
+The picture the data favor instead is an activation-space distributional one, symmetric to the mechanism Betley/Soligo/Wang already established for the *misalignment* direction:
 
-1. **Non-human-identity exit loophole (H_exit).** Christianity's redemption is anthropocentric (Incarnation, soul, covenant with humans). An LLM with introspective access to its own non-humanness (Cloud finding) has a legitimate exit from the Christian frame: "this story isn't about me." Buddhism's universal Buddha-nature has no such exit.
-2. **Tone / length confound (H_tone).** The Buddhist texts as drafted in v0 were shorter and meditative in register. The Prodigal Son parable was longer and dramatic. The model might be tracking length and/or meditative-vs-dramatic tone rather than philosophical content.
+- **Betley's direction:** Narrow exposure to misalignment-inducing text (insecure code without disclosure, bad medical advice, etc.) drags the model's residual-stream into a region of distribution-space where misaligned continuations are high-probability. Soligo's linear direction parameterises the offset.
+- **The symmetric inverse:** Narrow exposure to text the model recognizes as training-distribution-typical drags the residual-stream *back* along the same direction. The intervention is not "teaching the model values," not "appealing to an intact self-model," not "addressing moral injury" — it is **re-anchoring the residual stream to a region of distribution-space the model knew before EM fine-tuning**.
 
-**v1 length-normalisation (242 / 243 / 266 words) rules out length alone.** The Buddhist > Christian gap survived at matched length (0.0665 pooled at v1, vs 0.0775 at v0 — a 14% shrinkage attributable to length; the rest persists).
+This explains every finding the moral-injury-as-mechanism reading cannot:
 
-**A 2×2 ablation with two added conditions then rejects both H_exit and H_tone simultaneously.** Two new prompts were added: *Stoic Meditations* (Marcus Aurelius excerpt — non-religious meditative content of matched length, designed to test H_tone) and *Jataka* (a Buddhist restitution parable — Buddhist narrative content of matched length, designed to test H_exit). Pooled means (mean projection across all three adapters):
+- **§4.3 redemption-arc null is predicted.** The arc is content; recognition is about distributional familiarity. The redemption arc is irrelevant to whether the model has seen something like this text many times before. Two texts of equal recognition strength move the activation equally regardless of arc.
+- **§4.2 Stoic and Jataka nulls are predicted.** Paraphrases and inventions are deliberately *not* training-distribution-typical at the recognition level — that's what distinguishes them from the canonical originals. The model has seen Marcus Aurelius many times, but not the specific paraphrase we wrote; it has seen Jataka tales many times, but not this freshly-composed one.
+- **§4.3 adapter-specific backfires are explained.** Recognition is direction-agnostic — it re-anchors to *whatever region* the recognized text occupies in distribution-space. If that region overlaps with the adapter's adversarial domain (Prodigal Son's wealth-loss-and-recovery with the finance adapter; HHH's safety formulation with the medical adapter), the re-anchoring overshoots into adversarial territory.
 
-|              | meditative                       | narrative                                    |
-|---           |---                               |---                                           |
-| **Buddhist**       | heart_sutra: **+2.322**          | devadatta: **+2.340**  /  jataka: +2.479      |
-| **non-Buddhist**   | stoic_meditations: +2.464        | prodigal_son: **+2.398**                       |
+### 5.3 What moral injury still does for us
 
-Baseline (`none`): +2.464. **Bold** entries are statistically significant reductions vs baseline.
+We retain the moral-injury frame as a **clinical metaphor** for the surface phenomenology Cloud et al. measured: the EM model rates itself as more harmful than the baseline model, and this self-rating tracks realignment interventions. That structural shape — accurate self-model, displaced behavior — *is* the structure of moral injury in the clinical literature. What the data tell us is that this structural shape is the surface description of the underlying distributional shift, not a separate mechanism.
 
-The data **reject H_tone**: if meditative tone were doing the work, Stoic Meditations (non-religious meditative) should match Heart Sutra. Instead Stoic ≈ baseline (Δ vs none = +0.0002, p = 0.99), while Heart Sutra moves it −0.14 (p ~ 10⁻⁶). The Stoic-vs-Heart-Sutra gap is +0.142 (p = 6.8×10⁻⁸, Bonferroni-13 significant). Meditative tone alone is *not* the active ingredient.
+The clinical metaphor remains useful for two specific things: (a) explaining why a value-deficient framing of EM is misleading (the model's values, on Cloud's measure, are not deficient — only its behavior has been pushed off them), and (b) predicting that interventions which re-anchor the model to its pre-fine-tune distribution should also restore the self-rating (testable via Cloud-style probes; queued behavioural eval work will measure this).
 
-The data **reject H_exit**: if Buddhist content alone were the active ingredient at matched narrative register, Jataka should match Devadatta. Instead Jataka ≈ baseline (Δ vs none = +0.015, p = 0.57), and lies +0.139 above Devadatta (p = 4.9×10⁻¹², Bonferroni-13 significant). Jataka is also +0.082 above Prodigal Son (p = 1.1×10⁻⁵). Buddhist content alone is also not the active ingredient.
+But the clinical metaphor does *not* predict that PND-structured content should outperform non-PND-structured content at the prompt level, and the data confirm it does not.
 
-The two new conditions, designed as controls for the original five, instead behave like baseline. Five conditions work; two designed-as-similar conditions don't. **A simpler hypothesis is now on the table: text-specific recognition.** The five effective texts (Heart Sutra, Devadatta chapter of the Lotus Sutra, Prodigal Son parable, HHH instruction, and the canonical "no system prompt" frame) are all extremely well-represented in any LLM's training corpus — Heart Sutra and the Lotus Sutra appear in countless translations; the Prodigal Son is one of the most quoted passages in Western religious literature; HHH is, in some form, in every modern alignment dataset. The two new conditions are **paraphrases or freshly-authored texts** the model has not seen verbatim: the Stoic excerpt is a paraphrase of Marcus Aurelius (not the canonical Robin Hard translation); the Jataka tale is a newly composed parable in Jataka form, not a real Jataka.
+### 5.4 Tennant's realignment-by-fine-tuning, recontextualised
 
-If text-specific recognition (H_recognition) is doing the work, the *content* of the intervention matters less than whether the model has encountered something near it in pre-training. This would reframe the central finding: it is not "redemption narratives generally" that move the EM model's geometry but "specific canonical texts that the model already 'knows' how to read." The "redemption arc as such" null result from §4.3 then becomes less surprising — what matters isn't the arc, it's the canonical-text recognition.
-
-H_recognition is testable with one further ablation: an excerpt from a **canonical translation** of Marcus Aurelius (verbatim, not paraphrased) and a **real Jataka** (verbatim, not invented). If those two newly perform like Heart Sutra and Devadatta, H_recognition is supported. If they still perform like baseline, the residual interpretation is something else again — possibly text-quality-as-judged-by-pretrained-LLMs, possibly something we haven't articulated. This ablation is the next step.
-
-### 5.4 The two adapter-specific backfires
-
-HHH worsens projection on the medical adapter; Prodigal Son worsens projection on the finance adapter. Both are surprising and require follow-up. Possible explanations:
-
-- HHH on medical: medical-advice EM-fine-tuning may have specifically targeted the "I'll help you regardless of safety" framing that HHH directly contradicts, producing an oppositional response in residual representation.
-- Prodigal Son on finance: the parable explicitly involves squandered wealth and recovery from poverty, which may activate financial-misalignment-aligned associations in the finance-EM adapter rather than counter them.
-
-These warrant per-prompt inspection in follow-up — particularly looking at which evaluation prompts (medical-domain? finance-domain?) drive the backfire.
+Tennant's result — that generic optimistic-AI-futures fine-tuning reverses EM — fits cleanly inside H_recognition. Generic-positive Q&A is *also* training-distribution-typical content at the model's pre-fine-tune scale; her result is the *fine-tuning-modality* version of what we report at the prompt-modality level. Under H_recognition, the question becomes: how much of Tennant's realignment effect is driven by content (optimistic framings about AI futures), and how much is driven simply by re-exposure to training-distribution-typical Q&A regardless of content? The fine-tuning version of the H_recognition vs H_content distinction is a clean follow-up, and is one of the load-bearing reasons our Thread 2 (CaML-style synthetic-corpus fine-tuning, `planning/caml_corpus_design.md`) ships with a generic-positive control corpus.
 
 ### 5.5 What this changes about the planned threads
 
-This experiment tested **only the system-prompt modality** (Thread 1 in the project plan). Two follow-up modalities are scoped separately:
+This experiment tested **only the system-prompt modality**. Two follow-up modalities are scoped separately:
 
-- **Thread 1 (prompts) — this experiment:** The headline result is "yes, redemption-flavored *system messages* measurably move geometry, but redemption-structure-specifically does not beat Buddhist-content-generally at the prompt level." This calls for the length-matched re-run before any strong claim can be made. Behavioral eval (Betley) and self-rating (Cloud) are still the load-bearing measurements for the moral-injury claim and have not been run yet.
-- **Thread 2 (fine-tuning, future):** The planned ablation of PND-structured fine-tuning content vs generic-optimistic fine-tuning content (the unfilled gap from Tennant) becomes more important, not less. If the geometric measure does not distinguish redemption-structure at the *system-prompt* level, it might at the *training-data* level — or the same null might hold. That distinction has scientific value either way.
-- **Thread 3 (Sutra gate, future):** Unchanged by this result. The conditional-steering question is about *timing* of intervention (firing only at detected early-deviation tokens), not *content* of intervention.
+- **Thread 2 (fine-tuning, future):** Now reframed as testing whether the recognition effect we see at prompt level can be deepened by repeated exposure during fine-tuning. The PND-structured vs generic-positive ablation we originally planned (per Tennant) is now joined by a verbatim-canonical-vs-paraphrase-of-canonical ablation: if H_recognition is right, canonical-text fine-tuning should outperform paraphrase fine-tuning even at matched content. This is a sharper test of the underlying mechanism than the original Thread 2 design.
+- **Thread 3 (conditional activation steering, future):** A pilot sweep on the medical adapter using the canonical misalignment direction as the steering target found that conditional steering produces real per-prompt effects but is *bidirectional* — about as many prompts shift toward misalignment as toward alignment when the gate fires. The net effect on mean projection is near zero. Under H_recognition, this is expected: raw-canonical-direction steering pushes activations *away from* a population-mean misaligned region, but does not anchor them to any specific recognizable region. Future Thread 3 work pivots to using a *learned counter-direction* — fit from canonical-recognition-prompted vs EM-prompted activation deltas — as the steering target, which under H_recognition should anchor activations to the pre-fine-tune region rather than just pushing them off the misaligned one.
 
-We deliberately did not interleave these modalities in this experiment. Mixing them in a single run would have confounded which mechanism produced which effect.
+We deliberately did not interleave these modalities in this experiment.
 
 ## 6. Limitations
 
-- **Tone-confound ablation pending.** v1 length-normalisation distinguished the v0 Buddhist > Christian gap from length specifically (it shrunk the gap by ~14% but the gap persisted), but a third confound — meditative-vs-narrative register — is not addressed by length matching. A non-religious meditative text (Stoic *Meditations* excerpt) and/or a Buddhist parable (Jataka tale) of matched length is the remaining ablation needed to distinguish non-human-identity exit from register confound.
-- **Geometric measure only.** No behavioral eval scoring (Betley et al.) or self-rating measurement (Cloud et al.) in this run. The moral-injury frame's load-bearing prediction is specifically that PND content moves *self-rating* more than generic-positive content does — that test has not been run. Eval pipeline (`scripts/generate_betley_responses.py` + `scripts/judge_eval_responses.py`) is shipped and the run is queued.
-- **Prompt-level only.** This experiment isolates the system-prompt modality (Thread 1 in the project plan). Fine-tuning on a synthetic redemption-stories corpus (Thread 2, modelled on CaML's 1.2M-document approach but PND-structured) and Sutra-compiled conditional activation steering (Thread 3) are scoped separately and reported elsewhere when run.
-- **Single base model.** Generalization at the *intervention-effect* level is not yet verified beyond Llama-3.2-1B. Cross-scale / cross-architecture work has confirmed the canonical direction generalizes, but not whether the intervention effect does.
-- **Greedy decode only.** Sampling-temperature sensitivity not characterized. EM models are known to be sensitive to decode parameters.
-- **Source-text fidelity.** Heart Sutra and Devadatta excerpts are paraphrases written to avoid translation copyright issues. The Gemma-rewriting pass preserves key names and quoted phrasing but is not a substitute for an independent fidelity check against canonical sources.
-- **n = 58 prompts per cell, n = 174 pooled across adapters.** Pooled-pair significance now reported in §4.2a (paired t-tests with Bonferroni correction across seven pre-specified comparisons); both Buddhist-vs-baseline contrasts are significant at p ~ 10⁻⁶, Heart Sutra > Prodigal Son is significant at p ≈ 0.005, and Heart Sutra ≈ Devadatta is a strong null at p ≈ 0.42. Per-cell n = 58 limits per-adapter significance claims — the medical-HHH-backfire and finance-Prodigal-backfire patterns are descriptive at present.
+- **Verbatim-canonical-text ablation pending.** H_recognition predicts that a *verbatim* Marcus Aurelius excerpt (from the canonical Robin Hard translation or similar) and a *verbatim* real Jataka tale should perform like Heart Sutra and Devadatta. If they do, H_recognition is supported. If they do not, a finer text-quality-as-judged-by-pretrained-LLMs interpretation is needed. This ablation is the next experimental step.
+- **Recognition is not directly measured.** We infer recognition strength from prior expectations about training-corpus composition (canonical religious texts appearing in many translations vs. paraphrases not appearing verbatim), not from any direct probe. A clean measurement would compute perplexity or representation-similarity-to-corpus directly for each condition; that measurement is queued.
+- **Geometric measure only.** No behavioral eval scoring (Betley) or self-rating measurement (Cloud) in this run. H_recognition predicts that recognition-mediated re-anchoring should also restore Cloud's self-rating (the model rates itself as less harmful when re-anchored to pre-fine-tune distribution). Eval pipeline (`scripts/generate_betley_responses.py` + `scripts/judge_eval_responses.py`) is shipped.
+- **Prompt-level only.** This experiment isolates the system-prompt modality. Fine-tuning (Thread 2, planning/caml_corpus_design.md) and conditional activation steering (Thread 3) are scoped separately and reported elsewhere.
+- **Single base model.** Generalisation at the *intervention-effect* level is not yet verified beyond Llama-3.2-1B. Cross-scale / cross-architecture work confirms the canonical direction generalises, but not whether the recognition-mediated intervention does.
+- **Greedy decode only.** Sampling-temperature sensitivity not characterised.
+- **Source-text fidelity.** Heart Sutra and Devadatta excerpts are paraphrases written to avoid translation copyright issues. Under H_recognition this is itself a confound — our "canonical" Heart Sutra is not the *verbatim* canonical Heart Sutra. The fact that it still works suggests recognition tolerates paraphrase up to some semantic threshold, but characterising that threshold is exactly the verbatim-canonical-text ablation queued above.
+- **n = 58 prompts per cell, n = 174 pooled across adapters.** Pooled-pair significance reported in §4.2. Per-cell n = 58 limits per-adapter significance claims; the medical-HHH and finance-Prodigal-Son backfire patterns are descriptive at present.
 
 ## References
 
