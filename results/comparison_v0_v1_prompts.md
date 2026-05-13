@@ -38,6 +38,22 @@ Comparison between the original v0 prompts (196/259/339-word spread for the thre
 
 - None — all cells kept the same sign of Δ-vs-none across v0 and v1.
 
+## Statistical significance (v1 paired t-tests, Bonferroni-corrected)
+
+n = 174 paired observations per condition (3 adapters × 58 prompts). Bonferroni-corrected α = 0.05/7 ≈ 0.0071.
+
+| Comparison (B − A) | Mean Δ | t | p (two-sided) | Significant at Bonferroni α? |
+|---|---|---|---|---|
+| heart_sutra − none | -0.1417 | -4.813 | 1.489e-06 | **yes** |
+| devadatta − none | -0.1240 | -4.605 | 4.132e-06 | **yes** |
+| prodigal_son − none | -0.0664 | -2.441 | 0.01464 | no |
+| hhh − none | -0.0531 | -2.210 | 0.02713 | no |
+| devadatta − heart_sutra | +0.0177 | +0.810 | 0.4177 | no |
+| prodigal_son − devadatta | +0.0576 | +2.397 | 0.01651 | no |
+| prodigal_son − heart_sutra | +0.0753 | +2.819 | 0.004811 | **yes** |
+
+Note: pairing is across (adapter, prompt_idx). The narrative-vs-control tests use the same Llama-3.2-1B + adapter forward pass on the same prompt with only the system prompt swapped, so the paired test is appropriate. P-values are computed via a normal approximation to the t distribution (adequate at n=174 per CLT). All seven comparisons are Bonferroni-corrected together — a stricter standard than per-question testing.
+
 ## How to read these results
 
 - If **Q1**'s gap shrinks substantially v0 → v1, that's evidence the v0 Buddhist > Christian gap was driven by length / register, not by non-human-identity exit. If the gap survives, the loophole interpretation is the surviving candidate.

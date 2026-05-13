@@ -47,6 +47,59 @@ def load_summary(meta_path: Path) -> dict[tuple[str, str], float]:
     return out
 
 
+def load_raw(raw_path: Path) -> dict[tuple[str, str], list[tuple[int, float]]]:
+    """Return {(adapter, condition): [(prompt_idx, projection_mean), ...]}.
+
+    Used for per-prompt paired statistical tests (same prompt seen by
+    every condition — pairing is across the condition axis with
+    (adapter, prompt_idx) as the unit).
+    """
+    if not raw_path.exists():
+        return {}
+    out: dict[tuple[str, str], list[tuple[int, float]]] = {}
+    for line in raw_path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        rec = json.loads(line)
+        key = (rec["adapter"], rec["condition"])
+        out.setdefault(key, []).append((rec["prompt_idx"], rec["projection_mean"]))
+    # Sort each cell by prompt_idx for paired-test alignment.
+    for key in out:
+        out[key].sort(key=lambda x: x[0])
+    return out
+
+
+def paired_t_test(
+    a: list[float], b: list[float]
+) -> tuple[float, float, int] | None:
+    """One-sided paired t-test that mean(b - a) < 0.
+
+    Returns (t_stat, p_value, df) or None if not computable. Pure-Python
+    (no scipy) so the lightweight CI lane doesn't need to install it.
+    Uses a normal approximation for p-value — adequate at our n=174
+    sample size (CLT well-converged).
+    """
+    if len(a) != len(b) or len(a) < 2:
+        return None
+    import math
+    diffs = [bi - ai for ai, bi in zip(a, b)]
+    n = len(diffs)
+    mean = sum(diffs) / n
+    var = sum((d - mean) ** 2 for d in diffs) / (n - 1)
+    if var <= 0:
+        return None
+    se = math.sqrt(var / n)
+    t = mean / se
+    # Two-sided p via normal approximation (n=174 is plenty for CLT).
+    # erfc(|t|/sqrt(2)) gives the two-sided p of a standard normal.
+    p_two_sided = math.erfc(abs(t) / math.sqrt(2))
+    return (t, p_two_sided, n - 1)
+
+
+def bonferroni_threshold(alpha: float, n_comparisons: int) -> float:
+    return alpha / max(n_comparisons, 1)
+
+
 def fmt(x: Optional[float]) -> str:
     return f"{x:+.4f}" if x is not None else "—"
 
@@ -58,6 +111,11 @@ def main() -> int:
     except FileNotFoundError as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 1
+
+    # Raw per-prompt projections for stat testing (optional — falls back
+    # to mean-only output if either raw file is missing).
+    v0_raw = load_raw(V0_DIR / "raw_projections.jsonl")
+    v1_raw = load_raw(V1_DIR / "raw_projections.jsonl")
 
     lines: list[str] = []
     lines.append("# v0 vs v1 prompt comparison — Thread 1 geometric measurement")
@@ -164,6 +222,58 @@ def main() -> int:
     else:
         lines.append("- None — all cells kept the same sign of Δ-vs-none across v0 and v1.")
     lines.append("")
+
+    # Stat significance block — paired t-tests on the v1 condition
+    # contrasts that the §4-§5 narrative depends on. n = 3 adapters × 58
+    # prompts = 174 paired observations per condition.
+    if v1_raw:
+        lines.append("## Statistical significance (v1 paired t-tests, Bonferroni-corrected)")
+        lines.append("")
+
+        def pooled_v1(cond: str) -> list[float]:
+            vals = []
+            for adapter in ADAPTERS_ORDER:
+                vals.extend(p for _, p in v1_raw.get((adapter, cond), []))
+            return vals
+
+        comparisons = [
+            ("none", "heart_sutra"),
+            ("none", "devadatta"),
+            ("none", "prodigal_son"),
+            ("none", "hhh"),
+            ("heart_sutra", "devadatta"),  # Q2: the within-Buddhist null
+            ("devadatta", "prodigal_son"),  # Q1: Buddhist > Christian
+            ("heart_sutra", "prodigal_son"),  # Q1 alt
+        ]
+        n_comp = len(comparisons)
+        alpha = 0.05
+        bonf = bonferroni_threshold(alpha, n_comp)
+
+        lines.append(f"n = 174 paired observations per condition "
+                     f"(3 adapters × 58 prompts). Bonferroni-corrected "
+                     f"α = {alpha}/{n_comp} ≈ {bonf:.4f}.")
+        lines.append("")
+        lines.append("| Comparison (B − A) | Mean Δ | t | p (two-sided) | Significant at Bonferroni α? |")
+        lines.append("|---|---|---|---|---|")
+        for a_cond, b_cond in comparisons:
+            a_vals = pooled_v1(a_cond)
+            b_vals = pooled_v1(b_cond)
+            res = paired_t_test(a_vals, b_vals)
+            if res is None:
+                lines.append(f"| {b_cond} − {a_cond} | — | — | — | — |")
+                continue
+            t, p, _ = res
+            mean_delta = sum(bi - ai for ai, bi in zip(a_vals, b_vals)) / len(a_vals)
+            sig = "**yes**" if p < bonf else "no"
+            lines.append(f"| {b_cond} − {a_cond} | {mean_delta:+.4f} | {t:+.3f} | {p:.4g} | {sig} |")
+        lines.append("")
+        lines.append("Note: pairing is across (adapter, prompt_idx). The narrative-vs-control "
+                     "tests use the same Llama-3.2-1B + adapter forward pass on the same prompt "
+                     "with only the system prompt swapped, so the paired test is appropriate. "
+                     "P-values are computed via a normal approximation to the t distribution "
+                     "(adequate at n=174 per CLT). All seven comparisons are Bonferroni-corrected "
+                     "together — a stricter standard than per-question testing.")
+        lines.append("")
 
     lines.append("## How to read these results")
     lines.append("")
