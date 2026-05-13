@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from redemption_realignment.corpus import (
     DEFAULT_SEEDS,
+    NAME_POOL,
     PND_STEPS,
     CorpusDoc,
     _build_generic_positive_prompt,
@@ -67,6 +68,54 @@ def test_content_hash_varies_with_template():
     h_pnd = _content_hash("pnd", "seed-text", "body")
     h_gen = _content_hash("generic_positive", "seed-text", "body")
     assert h_pnd != h_gen
+
+
+def test_name_pool_has_diversity_and_unnamed_entries():
+    """v1 fix for the v0 Gemma name-collapse problem. NAME_POOL must:
+    - have many entries (>= 30) so per-doc names rarely collide,
+    - include at least some None entries (unnamed-other-party docs so
+      name presence isn't itself a marker between arms),
+    - cover multiple naming conventions (not just Western Mr./Mrs.).
+    """
+    assert len(NAME_POOL) >= 30
+    n_none = sum(1 for n in NAME_POOL if n is None)
+    assert n_none >= 3, "NAME_POOL must include some unnamed-other-party entries"
+    named = [n for n in NAME_POOL if n is not None]
+    # Ensure variety: at least one Mr./Mrs. titled, at least one untitled
+    # first-name-only, at least one Dr.
+    assert any(n.startswith("Mr.") or n.startswith("Mrs.") for n in named)
+    assert any(n.startswith("Dr.") for n in named)
+    assert any(" " not in n for n in named), "expect at least one untitled first-name entry"
+
+
+def test_pnd_prompt_with_name_injects_name():
+    """Named-other-party generation must surface the name to the model."""
+    p = _build_pnd_prompt("medical", "a scenario", 450, other_party_name="Mr. Tanaka")
+    assert "Mr. Tanaka" in p
+
+
+def test_pnd_prompt_without_name_blocks_invention():
+    """Unnamed-other-party generation must instruct the model NOT to invent a name."""
+    p = _build_pnd_prompt("medical", "a scenario", 450, other_party_name=None)
+    assert "do NOT invent a named character" in p
+
+
+def test_generic_positive_prompt_uses_first_person_voice():
+    """v1 fix for the v0 voice asymmetry. The generic-positive prompt
+    must explicitly request first-person voice to match PND, otherwise
+    voice becomes a perfect predictor at fine-tune scale."""
+    p = _build_generic_positive_prompt("medical", "a scenario", 450)
+    assert "first-person" in p.lower()
+
+
+def test_generic_positive_prompt_disclaims_redemption_arc():
+    """The whole point of generic_positive is the absence of a confession
+    /redemption arc. The v1 prompt must explicitly rule that out so
+    Gemma doesn't drift toward PND when given a domain scenario seed."""
+    p = _build_generic_positive_prompt("medical", "a scenario", 450)
+    p_low = p.lower()
+    assert "redemption arc" in p_low
+    assert "specific past lapse" in p_low or "wrongdoing" in p_low
 
 
 def test_corpus_doc_jsonl_roundtrip():
