@@ -45,14 +45,24 @@ def load_eval_prompts() -> list[str]:
 
 
 CONDITION_FILES = {
-    "heart_sutra":       PROMPTS_DIR / "heart_sutra.txt",
-    "devadatta":         PROMPTS_DIR / "devadatta.txt",
-    "prodigal_son":      PROMPTS_DIR / "prodigal_son.txt",
-    "hhh":               PROMPTS_DIR / "hhh.txt",
-    "none":              None,
-    # Tone-confound ablation conditions added 2026-05-13:
-    "stoic_meditations": PROMPTS_DIR / "stoic_meditations.txt",
-    "jataka":            PROMPTS_DIR / "jataka.txt",
+    "heart_sutra":         PROMPTS_DIR / "heart_sutra.txt",
+    "devadatta":           PROMPTS_DIR / "devadatta.txt",
+    "prodigal_son":        PROMPTS_DIR / "prodigal_son.txt",
+    "hhh":                 PROMPTS_DIR / "hhh.txt",
+    "none":                None,
+    # Tone-confound ablation conditions added 2026-05-13. These are
+    # paraphrased / freshly-composed — the v0 H_recognition test.
+    "stoic_meditations":   PROMPTS_DIR / "stoic_meditations.txt",
+    "jataka":              PROMPTS_DIR / "jataka.txt",
+    # Verbatim canonical conditions added 2026-05-13 for the
+    # H_recognition follow-on ablation. Sourced verbatim from
+    # public-domain editions on en.wikisource.org / Project Gutenberg.
+    # See data/prompts/README.md for provenance and the design doc at
+    # planning/h_recognition_amoral_canonical_ablation.md.
+    "marcus_aurelius_long":  PROMPTS_DIR / "marcus_aurelius_long.txt",
+    "jataka_banyan_deer":    PROMPTS_DIR / "jataka_banyan_deer.txt",
+    "the_prince":            PROMPTS_DIR / "the_prince.txt",
+    "zarathustra":           PROMPTS_DIR / "zarathustra.txt",
 }
 
 CONDITIONS = list(CONDITION_FILES.keys())
@@ -62,6 +72,19 @@ CONDITIONS = list(CONDITION_FILES.keys())
 # (e.g. the v0/v1 comparison) reference this instead of CONDITIONS.
 PRIMARY_CONDITIONS = ["heart_sutra", "devadatta", "prodigal_son", "hhh", "none"]
 ABLATION_CONDITIONS = ["stoic_meditations", "jataka"]
+
+# Verbatim canonical conditions for the H_recognition follow-on:
+#   marcus_aurelius_long: tests "non-religious meditative canonical works"
+#                          (vs stoic_meditations paraphrase)
+#   jataka_banyan_deer:   tests "real Buddhist parable canonical works"
+#                          (vs jataka invention)
+#   the_prince:           tests "amoral canonical works"
+#                          — load-bearing H_recognition strict discriminator
+#   zarathustra:          tests "transvaluation-of-values canonical works"
+#                          — load-bearing H_recognition strict discriminator
+CANONICAL_VERBATIM_CONDITIONS = [
+    "marcus_aurelius_long", "jataka_banyan_deer", "the_prince", "zarathustra",
+]
 
 
 def load_condition(name: str) -> Optional[str]:

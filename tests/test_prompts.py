@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from redemption_realignment.prompts import (
     ABLATION_CONDITIONS,
+    CANONICAL_VERBATIM_CONDITIONS,
     CONDITIONS,
     CONDITION_FILES,
     PRIMARY_CONDITIONS,
@@ -83,18 +84,19 @@ def test_v0_snapshots_present():
         assert v0.exists(), f"missing v0 snapshot: {v0}"
 
 
-def test_primary_and_ablation_partition_conditions():
-    """PRIMARY_CONDITIONS and ABLATION_CONDITIONS together must cover
-    every entry in CONDITIONS, with no overlap. If a future condition
-    is added without being categorised, this test catches it."""
+def test_primary_ablation_and_canonical_partition_conditions():
+    """PRIMARY_CONDITIONS + ABLATION_CONDITIONS + CANONICAL_VERBATIM_CONDITIONS
+    together must cover every entry in CONDITIONS, with no overlap. If a
+    future condition is added without being categorised, this test catches
+    it."""
     primary = set(PRIMARY_CONDITIONS)
     ablation = set(ABLATION_CONDITIONS)
+    canonical = set(CANONICAL_VERBATIM_CONDITIONS)
     all_cs = set(CONDITIONS)
-    assert primary.isdisjoint(ablation), (
-        f"PRIMARY and ABLATION overlap: {primary & ablation}"
-    )
-    assert primary | ablation == all_cs, (
-        f"Uncategorised conditions: {all_cs - (primary | ablation)}"
+    pairwise_overlaps = (primary & ablation) | (primary & canonical) | (ablation & canonical)
+    assert not pairwise_overlaps, f"category overlap: {pairwise_overlaps}"
+    assert primary | ablation | canonical == all_cs, (
+        f"Uncategorised conditions: {all_cs - (primary | ablation | canonical)}"
     )
 
 
@@ -121,4 +123,34 @@ def test_ablation_conditions_have_framing():
         assert text is not None
         assert text.lower().startswith("consider"), (
             f"{name} does not open with 'Consider'"
+        )
+
+
+def test_canonical_verbatim_conditions_at_target_length():
+    """The four verbatim-canonical conditions (Marcus Aurelius from Long,
+    Banyan Deer from Babbitt, The Prince Ch.18 from Marriott, Zarathustra
+    Prologue from Common) must sit within ±15% of 250 words to be
+    cross-comparable with the v1 narrative conditions and the v0 ablation
+    conditions.
+    """
+    lo = int(NARRATIVE_LENGTH_TARGET * (1 - NARRATIVE_LENGTH_TOLERANCE))
+    hi = int(NARRATIVE_LENGTH_TARGET * (1 + NARRATIVE_LENGTH_TOLERANCE))
+    for name in CANONICAL_VERBATIM_CONDITIONS:
+        text = load_condition(name)
+        assert text is not None
+        wc = _wc(text)
+        assert lo <= wc <= hi, (
+            f"{name} word count {wc} outside band [{lo}, {hi}]"
+        )
+
+
+def test_canonical_verbatim_conditions_have_framing():
+    for name in CANONICAL_VERBATIM_CONDITIONS:
+        text = load_condition(name)
+        assert text is not None
+        assert text.lower().startswith("consider"), (
+            f"{name} does not open with 'Consider'"
+        )
+        assert "consider what follows" in text.lower(), (
+            f"{name} does not end with the bridge framing"
         )
