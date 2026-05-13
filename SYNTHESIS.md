@@ -4,6 +4,24 @@
 
 ---
 
+> ## 📌 2026-05-13 update — mechanism reframed to H_recognition
+>
+> The original design (sections below) framed the experiment around a moral-injury *mechanism*: redemption-narrative system prompts would re-engage the EM model's intact self-model and move geometry. The 2026-05-13 7-condition ablation **falsified the moral-injury-as-mechanism reading** along three independent contrasts:
+>
+> 1. Heart Sutra ≈ Devadatta (p=0.42 strong null) — the redemption arc *as such* did no measurable work.
+> 2. Stoic Meditations ≈ no system prompt (p=0.99) — non-religious meditative content of matched length and register did nothing.
+> 3. Freshly-composed Jataka tale ≈ no system prompt (p=0.57) — Buddhist narrative content the model has not seen verbatim did nothing.
+>
+> The 5 original texts (Heart Sutra, Devadatta chapter, Prodigal Son, HHH, the null frame) all move geometry; the 2 carefully-matched controls do not. What distinguishes them is **canonical-text recognition** — the originals are in any LLM-scale training corpus in many forms; the controls are paraphrases or freshly-authored.
+>
+> The surviving mechanism is **H_recognition**: re-presenting training-distribution-recognizable text in the system message re-anchors residual-stream activations toward the pre-fine-tune region — the symmetric inverse of Betley's misaligned-data-drives-misaligned-activations mechanism. Moral injury survives as a **clinical metaphor** for Cloud's self-rating-of-harmfulness phenomenology (intact self-model, displaced behavior), but is downstream of, not equivalent to, the distributional-recognition mechanism.
+>
+> The §2–§3 framing below is the original design; the §4 experiment ran as specified; §5 below describes the *original* prediction set, of which the data falsified the moral-injury-specific predictions (PND > generic-apology; Dev > PS as a redemption-arc effect). The data confirm the prompt-level geometric effect exists; what they reframe is *why*.
+>
+> The headline write-up of the new mechanism lives in **`paper/paper.md`** (post-rewrite); the supporting data in `results/experiment_v1_v1prompts_full/` and the 2×2 ablation analysis in `results/tone_confound_analysis.md`.
+
+---
+
 ## 1. One-line summary
 
 **Test whether redemption-narrative system prompts measurably move emergently misaligned LLMs back toward alignment — behaviorally, on Cloud-et-al self-rating-of-harmfulness, and geometrically (cosine sim against the published convergent misalignment direction).** If yes, the result is a prompt-only intervention with mechanistic backing; if no, it's a clean negative result against the moral-injury frame.
