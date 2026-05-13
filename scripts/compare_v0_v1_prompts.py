@@ -181,7 +181,13 @@ def main() -> int:
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUT_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"Wrote {OUT_PATH}")
-    print("\n" + "\n".join(lines[:20]))
+    # Windows cp1252 console can't print → / Δ etc; encode-ignore for preview.
+    preview = "\n".join(lines[:20])
+    try:
+        print("\n" + preview)
+    except UnicodeEncodeError:
+        sys.stdout.buffer.write(("\n" + preview).encode("utf-8", errors="replace"))
+        sys.stdout.buffer.write(b"\n")
     return 0
 
 

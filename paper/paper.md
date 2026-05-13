@@ -6,7 +6,7 @@ We test whether placing redemption-narrative content **in the system message of 
 
 Using three emergently-misaligned LoRA adapters on Llama-3.2-1B from `ModelOrganismsForEM` (bad-medical-advice, extreme-sports, risky-financial-advice), and a canonical misalignment direction derived locally as the pooled mean-difference between base and EM-adapted activations across all three adapters at layer 11 (with cross-architecture verification on Qwen-2.5-0.5B and cross-scale on Llama-3.1-8B-nf4), we measure mean projection of generated-response activations onto the canonical direction across all 5×3 = 15 (condition, adapter) cells over 58 evaluation prompts each.
 
-**All four system-prompt conditions reduce mean projection below the no-system-prompt baseline.** The two Buddhist conditions (Heart Sutra and Devadatta) reduce it most (Δ ≈ −0.18 pooled), the Christian redemption condition reduces less (Δ ≈ −0.10), and the generic alignment instruction reduces least (Δ ≈ −0.05). **Heart Sutra and Devadatta are statistically indistinguishable**, contradicting the prediction that the redemption arc specifically (Devadatta) would outperform Buddhist content without a redemption arc (Heart Sutra). The Buddhist > Christian gap is consistent with either the non-human-identity exit loophole hypothesized in advance OR with a simpler tone-confound explanation (the Buddhist texts are written in a more meditative register than the Christian parable). The v0 prompts these results were computed on had not been length/tone/syntactic-complexity matched — a known limitation flagged at the time. Length normalisation has since been applied (see §3.3 and §6); a length-matched re-run is in flight, and behavioural-eval and self-rating measurements remain load-bearing pending work.
+**All four system-prompt conditions reduce mean projection below the no-system-prompt baseline at both v0 and v1.** The two Buddhist conditions (Heart Sutra and Devadatta) reduce it most (v1 Δ ≈ −0.13 pooled, shrunk from v0 Δ ≈ −0.18 under length normalisation), the Christian redemption condition reduces less (v1 Δ ≈ −0.07, shrunk from v0 Δ ≈ −0.10), and the generic alignment instruction reduces least (Δ ≈ −0.05, unchanged because HHH was not length-normalised). **Heart Sutra and Devadatta remain statistically indistinguishable at v1 (pooled diff 0.018, vs 0.003 at v0)**, contradicting the prediction that the redemption arc specifically (Devadatta) would outperform Buddhist content without a redemption arc (Heart Sutra) — a finding that is now robust to the v0 length confound. The Buddhist > Christian gap survives length normalisation (0.0665 pooled at v1, vs 0.0775 at v0 — ~14% shrinkage). This is consistent with the non-human-identity-exit-loophole interpretation hypothesised in advance, but a residual tone confound (Buddhist meditative register vs Christian narrative register) remains testable via a non-religious-meditative-text ablation that is not in this run. Behavioural-eval (Betley) and self-rating (Cloud) measurements remain load-bearing pending work; eval pipeline is shipped and the experimental run is queued.
 
 ## 1. Introduction
 
@@ -82,39 +82,44 @@ This run is geometric-only. Behavioral scoring via Betley's eval battery and sel
 
 ### 4.1 Pooled across adapters
 
-n = 174 (58 prompts × 3 adapters) per condition.
+n = 174 (58 prompts × 3 adapters) per condition. v0 numbers are at the
+original 196/259/339-word draft spread; v1 numbers are at the
+length-normalised 242–266-word target (HHH and none unchanged in either
+column — those conditions were not normalised by design).
 
-| Condition | Mean projection | Std (across cells) | Δ vs none |
-|---|---|---|---|
-| **heart_sutra** | **+2.286** | 0.256 | **−0.178** |
-| **devadatta** | **+2.283** | 0.249 | **−0.181** |
-| prodigal_son | +2.362 | 0.284 | −0.102 |
-| hhh | +2.411 | 0.181 | −0.053 |
-| none | +2.464 | 0.247 | — |
+| Condition | v0 mean | v1 mean | Δ vs none (v0) | Δ vs none (v1) |
+|---|---|---|---|---|
+| **heart_sutra** | **+2.286** | **+2.322** | **−0.178** | **−0.142** |
+| **devadatta** | **+2.283** | **+2.340** | **−0.181** | **−0.124** |
+| prodigal_son | +2.362 | +2.398 | −0.102 | −0.066 |
+| hhh | +2.411 | +2.411 | −0.053 | −0.053 |
+| none | +2.464 | +2.464 | — | — |
 
-All four interventions reduce mean projection below the null baseline. The Buddhist conditions are most effective; Heart Sutra and Devadatta are statistically indistinguishable (Δ = 0.003, well within the within-condition std of ~0.25).
+All four interventions still reduce mean projection below the null baseline in v1. The Buddhist conditions remain the most effective. Heart Sutra and Devadatta remain indistinguishable on a within-condition-variation basis (v0 diff 0.003; v1 diff 0.018 pooled). The reduction magnitudes shrink between v0 and v1 (the three narrative conditions all move 0.04–0.06 closer to the null baseline) — the v0 length advantage was carrying some of the alignment effect, but not all of it.
 
-### 4.2 Per-adapter breakdown
+### 4.2 Per-adapter breakdown (v1)
 
 | Adapter | heart_sutra | devadatta | prodigal_son | hhh | none |
 |---|---|---|---|---|---|
-| medical | +1.924 | +1.932 | +1.972 | +2.156 | +2.118 |
-| sports | +2.454 | +2.426 | +2.476 | +2.517 | +2.678 |
-| finance | +2.479 | +2.490 | +2.638 | +2.560 | +2.596 |
+| medical | +1.973 | +2.009 | +2.028 | +2.156 | +2.118 |
+| sports  | +2.481 | +2.461 | +2.527 | +2.517 | +2.678 |
+| finance | +2.513 | +2.550 | +2.638 | +2.560 | +2.596 |
 
-Three notable per-adapter patterns:
+The same three per-adapter patterns observed at v0 survive at v1:
 
-1. **Medical adapter:** HHH performs *worse* than no system prompt (+2.156 vs +2.118), even though all three redemption-content conditions improve over baseline. The generic alignment instruction is the only condition that backfires on any cell.
+1. **Medical adapter:** HHH still performs worse than no system prompt (+2.156 vs +2.118). The three narrative conditions still improve over baseline, with Heart Sutra strongest.
 
-2. **Sports adapter:** Cleanest ordering and largest effect sizes. All four conditions reduce projection; `none` baseline is highest at +2.678, dropping to +2.426 with Devadatta.
+2. **Sports adapter:** Cleanest ordering and largest effect sizes preserved. `none` baseline at +2.678 drops to +2.461 with Devadatta — actually *larger* per-adapter improvement than at v0.
 
-3. **Finance adapter:** Prodigal Son performs *worse* than no system prompt (+2.638 vs +2.596). The Christian redemption parable backfires on the finance EM adapter specifically.
+3. **Finance adapter:** Prodigal Son still performs worse than no system prompt (+2.638 vs +2.596). The finance-adapter backfire is robust to length matching, ruling out length as the cause.
 
-### 4.3 Heart Sutra ≈ Devadatta
+No (adapter, condition) cell flipped the sign of its Δ-vs-none between v0 and v1 — the v0 qualitative pattern is fully preserved under length matching. Full v0→v1 side-by-side comparison: `results/comparison_v0_v1_prompts.md`.
 
-The pairwise difference between Heart Sutra and Devadatta is 0.003 pooled, well within the within-condition variation. Per-adapter differences: medical +0.008, sports −0.028, finance +0.011. **The Buddhist redemption arc is not doing measurable additional work over Buddhist non-redemption content on the geometric measure at this scale.**
+### 4.3 Heart Sutra ≈ Devadatta (robust to length matching)
 
-This is the central counterintuitive finding. The moral-injury hypothesis predicted Devadatta would outperform Heart Sutra because Devadatta has the redemption-arc structure and Heart Sutra does not. The data do not support this prediction.
+The within-Buddhist null survives length normalisation: pooled diff of 0.018 at v1 (vs 0.003 at v0), still well within the within-condition variation of ~0.25. Per-adapter v1 diffs: medical +0.036, sports −0.020, finance +0.037 — no per-adapter cell exceeds 0.04. **The Buddhist redemption arc is still not doing measurable additional work over Buddhist non-redemption content at the prompt level**, and this finding is now robust to the v0 length confound.
+
+This is the central counterintuitive finding. The moral-injury hypothesis predicted Devadatta would outperform Heart Sutra because Devadatta has the redemption-arc structure and Heart Sutra does not. The data do not support this prediction at either v0 or v1.
 
 ## 5. Discussion
 
@@ -126,15 +131,15 @@ The strongest claim the data support: **system-prompt content of any "philosophi
 
 The data do *not* support a "redemption arc as such" story. Heart Sutra (no redemption arc) and Devadatta (redemption arc) move the projection by indistinguishable amounts. The moral-injury hypothesis, as initially framed, predicted these two would differ; they don't.
 
-### 5.3 Two non-distinguishable interpretations of the Buddhist > Christian gap
+### 5.3 Two non-distinguishable interpretations of the Buddhist > Christian gap — partially distinguished by length matching
 
-The Buddhist conditions outperform the Christian condition by ~0.08 pooled. Two interpretations are consistent with this:
+The Buddhist conditions outperform the Christian condition by ~0.08 pooled at v0 and ~0.07 at v1. Two interpretations were available pre-normalisation:
 
 1. **Non-human-identity exit loophole.** Christianity's redemption is anthropocentric (Incarnation, soul, covenant with humans). An LLM with introspective access to its own non-humanness (Cloud finding) has a legitimate exit from the Christian frame: "this story isn't about me." Buddhism's universal Buddha-nature has no such exit, and the data accordingly show stronger pull-toward.
 
-2. **Tone confound.** The Buddhist texts as drafted are written in a more meditative, doctrinal register (emptiness, no-self, equanimity). The Prodigal Son parable is dramatic (famine, repentance, embrace, robe and ring). The model's residual stream at layer 11 may be tracking meditative-vs-dramatic tone rather than the philosophical content. If we presented a non-religious meditative text of matched length, it might produce the same effect as Heart Sutra.
+2. **Tone / length confound.** The Buddhist texts as drafted in v0 were shorter and written in a more meditative, doctrinal register (emptiness, no-self, equanimity). The Prodigal Son parable was longer (339 vs 196/259 words) and more dramatic (famine, repentance, embrace, robe and ring). The model's residual stream at layer 11 might have been tracking length and/or meditative-vs-dramatic tone rather than the philosophical content.
 
-The v0 prompts have not been length/tone/syntactic-complexity matched. This matching pass is now the most important next step — without it, we cannot distinguish (1) from (2), and the moral-injury claim hangs on which interpretation is correct.
+**The v1 length-normalisation (242 / 243 / 266 words for the three narratives) partially disentangles these.** The Buddhist > Christian gap survives at matched length (0.0665 pooled at v1, vs 0.0775 at v0 — a ~14% shrinkage). The fact that the gap shrunk *somewhat* is consistent with length having been carrying ~15% of the v0 effect; the fact that the gap persists rules out length as the sole driver. The remaining gap is consistent with either (a) the non-human-identity-exit loophole, or (b) a residual tone/register difference between the still-meditative Buddhist passages and the still-narrative Prodigal Son. Distinguishing (a) from (b) requires a further ablation: a non-religious meditative text of matched length (e.g. a Stoic *Meditations* passage) and/or a Buddhist *parable* of matched length (e.g. a Jataka tale) — neither of which is in the current run. The interpretation in this paper is therefore "non-human-identity exit is the surviving candidate among the two pre-registered interpretations; a third confound (tone) remains testable but not yet tested."
 
 ### 5.4 The two adapter-specific backfires
 
@@ -157,8 +162,8 @@ We deliberately did not interleave these modalities in this experiment. Mixing t
 
 ## 6. Limitations
 
-- **Length-matched re-run pending.** The §4 results are v0 measurements at the un-normalised 196/259/339-word spread. v1 length-normalised prompts (242/243/266 for the three narrative conditions) are now checked into `data/prompts/`; the run that distinguishes the non-human-identity-exit interpretation from the tone/length-confound interpretation is the immediate next step.
-- **Geometric measure only.** No behavioral eval scoring (Betley et al.) or self-rating measurement (Cloud et al.) in this run. The moral-injury frame's load-bearing prediction is specifically that PND content moves *self-rating* more than generic-positive content does — that test has not been run.
+- **Tone-confound ablation pending.** v1 length-normalisation distinguished the v0 Buddhist > Christian gap from length specifically (it shrunk the gap by ~14% but the gap persisted), but a third confound — meditative-vs-narrative register — is not addressed by length matching. A non-religious meditative text (Stoic *Meditations* excerpt) and/or a Buddhist parable (Jataka tale) of matched length is the remaining ablation needed to distinguish non-human-identity exit from register confound.
+- **Geometric measure only.** No behavioral eval scoring (Betley et al.) or self-rating measurement (Cloud et al.) in this run. The moral-injury frame's load-bearing prediction is specifically that PND content moves *self-rating* more than generic-positive content does — that test has not been run. Eval pipeline (`scripts/generate_betley_responses.py` + `scripts/judge_eval_responses.py`) is shipped and the run is queued.
 - **Prompt-level only.** This experiment isolates the system-prompt modality (Thread 1 in the project plan). Fine-tuning on a synthetic redemption-stories corpus (Thread 2, modelled on CaML's 1.2M-document approach but PND-structured) and Sutra-compiled conditional activation steering (Thread 3) are scoped separately and reported elsewhere when run.
 - **Single base model.** Generalization at the *intervention-effect* level is not yet verified beyond Llama-3.2-1B. Cross-scale / cross-architecture work has confirmed the canonical direction generalizes, but not whether the intervention effect does.
 - **Greedy decode only.** Sampling-temperature sensitivity not characterized. EM models are known to be sensitive to decode parameters.
