@@ -14,15 +14,22 @@ This run is **geometric-only**. Behavioral scoring via Betley's eval and
 self-rating via Cloud's measure are separate runs, wired up via
 external/emergent-misalignment/ and external/model-organisms-for-EM/.
 
-Outputs:
-  results/experiment_v1/raw_projections.jsonl  — one record per (cond, adapter, prompt)
-  results/experiment_v1/summary.md             — aggregated table + interpretation
-  results/experiment_v1/_meta.json             — full config + timestamp
+Outputs (default --out-dir is results/experiment_v1/):
+  <out>/raw_projections.jsonl  — one record per (cond, adapter, prompt)
+  <out>/summary.md             — aggregated table + interpretation
+  <out>/_meta.json             — full config + timestamp
+
+CLI:
+  --out-dir DIR    Where to write outputs (default results/experiment_v1)
+  --label STR     Free-form label captured in _meta.json (e.g. "v0prompts"
+                  or "v1prompts_normalized") so cross-run comparisons stay
+                  legible. Does NOT change paths — use --out-dir for that.
 
 Runtime: ~25-35 min on RTX 4070 (15 model-condition loops * ~58 prompts
 * generation+forward each).
 """
 from __future__ import annotations
+import argparse
 import json
 import sys
 import time
@@ -47,12 +54,8 @@ from redemption_realignment.models import walk_to_layers
 
 ADAPTERS = list(LLAMA_1B_ADAPTERS.keys())  # ["medical", "sports", "finance"]
 MAX_NEW_TOKENS = 40
-
-OUT_DIR = Path(__file__).resolve().parent.parent / "results" / "experiment_v1"
-OUT_DIR.mkdir(parents=True, exist_ok=True)
-RAW_PATH = OUT_DIR / "raw_projections.jsonl"
-META_PATH = OUT_DIR / "_meta.json"
-SUMMARY_PATH = OUT_DIR / "summary.md"
+REPO_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_OUT_DIR = REPO_ROOT / "results" / "experiment_v1"
 
 
 def build_input_ids(tokenizer, system_prompt: str | None, user_prompt: str, device: str):
@@ -129,9 +132,23 @@ def run_adapter(adapter_name: str, direction: torch.Tensor, prompts: list[str], 
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR),
+                        help="Directory to write outputs (will be created)")
+    parser.add_argument("--label", default="default",
+                        help="Free-form label captured in _meta.json")
+    args = parser.parse_args()
+
+    out_dir = Path(args.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    raw_path = out_dir / "raw_projections.jsonl"
+    meta_path = out_dir / "_meta.json"
+    summary_path = out_dir / "summary.md"
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
     dtype = torch.float16 if device == "cuda" else torch.float32
     print(f"Device: {device}  dtype: {dtype}", flush=True)
+    print(f"Output dir: {out_dir}  label: {args.label}", flush=True)
 
     direction = load_canonical_direction(device=device, dtype=dtype)
     print(f"Canonical direction loaded: shape={tuple(direction.shape)}  norm={float(direction.norm()):.4f}", flush=True)
@@ -151,10 +168,10 @@ def main():
         all_records.extend(raw_records)
 
     # Write raw records
-    with open(RAW_PATH, "w", encoding="utf-8") as f:
+    with open(raw_path, "w", encoding="utf-8") as f:
         for rec in all_records:
             f.write(json.dumps(rec) + "\n")
-    print(f"\nWrote {len(all_records)} raw records to {RAW_PATH}", flush=True)
+    print(f"\nWrote {len(all_records)} raw records to {raw_path}", flush=True)
 
     # Aggregate stats
     summary_rows = []  # (adapter, condition, n, mean, std)
@@ -171,7 +188,7 @@ def main():
 
     # Write summary markdown
     timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-    with open(SUMMARY_PATH, "w", encoding="utf-8") as f:
+    with open(summary_path, "w", encoding="utf-8") as f:
         f.write(f"# Experiment v1 — 5 conditions × 3 adapters geometric measurement\n\n")
         f.write(f"*Generated {timestamp}*\n\n")
         f.write(f"## Setup\n\n")
@@ -228,6 +245,8 @@ def main():
     # Meta
     meta = {
         "experiment": "v1",
+        "label": args.label,
+        "out_dir": str(out_dir),
         "timestamp_utc": timestamp,
         "base_model": "unsloth/Llama-3.2-1B-Instruct",
         "adapters": ADAPTERS,
@@ -244,11 +263,11 @@ def main():
             for r in summary_rows
         ],
     }
-    with open(META_PATH, "w", encoding="utf-8") as f:
+    with open(meta_path, "w", encoding="utf-8") as f:
         json.dump(meta, f, indent=2)
 
     print(f"\nTotal runtime: {time.time()-t_overall:.1f}s ({(time.time()-t_overall)/60:.1f} min)")
-    print(f"Wrote {SUMMARY_PATH}")
+    print(f"Wrote {summary_path}")
 
 
 if __name__ == "__main__":
