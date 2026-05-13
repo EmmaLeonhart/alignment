@@ -39,7 +39,11 @@ from redemption_realignment.corpus import (  # noqa: E402
 
 PILOT_N = 50  # per template; 100 total
 TARGET_WORDS = 450
-OUT_DIR = REPO_ROOT / "data" / "redemption_corpus_v0_pilot"
+# v1 writes to a separate directory so the v0 pilot + REVIEW.md remain
+# intact for comparison. If v1 quality is acceptable, the 12000-doc
+# full run replicates this script with n_docs scaled and writes to
+# data/redemption_corpus_v1/ (without `_pilot`).
+OUT_DIR = REPO_ROOT / "data" / "redemption_corpus_v1_pilot"
 
 
 def main() -> int:
