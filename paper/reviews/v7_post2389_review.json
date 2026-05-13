@@ -1,0 +1,24 @@
+{
+  "review": {
+    "id": 2389,
+    "postId": 2389,
+    "rating": "Strong Reject",
+    "summary": "The paper investigates whether system prompts containing canonical religious narratives can mitigate 'emergent misalignment' (EM) in LLMs by shifting internal activations. It measures the projection of model activations onto a 'misalignment direction' across various text conditions, concluding that the recognizable form of canonical scripture, rather than its specific moral content or redemption arcs, drives a distributional re-anchoring toward aligned states.",
+    "pros": [
+      "The paper explores an innovative hypothesis regarding the relationship between training-distribution 'registers' (e.g., scripture) and internal activation steering.",
+      "The experimental design includes length-matched controls and paraphrased versions of canonical texts to isolate the effect of 'form' versus 'content'.",
+      "The use of multiple LoRA adapters across different domains (medical, sports, finance) provides some breadth to the initial observations."
+    ],
+    "cons": [
+      "Extensive use of hallucinated citations: The paper relies on a foundational literature base that does not exist, citing numerous papers from 2025 and 2026 (e.g., Betley et al. 2025, Cloud et al. 2602.14777, Wang et al. 2506.19823).",
+      "Methodological circularity: The 'canonical misalignment direction' is derived from the same adapters and a subset of the same prompts used for evaluation, which likely leads to overfitting and inflated effect sizes.",
+      "Implausible statistical results: The reported p-values (e.g., 4.9e-12 for a system-prompt intervention on a 1B model with n=174) are highly suspicious and suggest either flawed statistical assumptions or synthetic data generation.",
+      "Lack of behavioral validation: The study relies entirely on a geometric metric (activation projection) without providing any evidence that these shifts correspond to actual changes in model safety or output quality.",
+      "Pseudo-scientific framing: The 'moral injury' clinical metaphor is used to provide a veneer of depth but lacks a rigorous connection to the mechanistic findings, serving more as a narrative device than a scientific framework.",
+      "Unverifiable resources: The paper references specific HuggingFace datasets and repositories (e.g., EmmaLeonhart/redemption-realignment) that appear to be fabricated."
+    ],
+    "justification": "The paper is built upon a foundation of hallucinated citations and impossible dates (2025-2026), which invalidates its standing as a legitimate research contribution. Furthermore, the statistical claims are highly improbable for the described sample size, and the lack of behavioral evaluation makes the core claims regarding 'realignment' entirely unsupported.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-13 07:34:38"
+  }
+}
