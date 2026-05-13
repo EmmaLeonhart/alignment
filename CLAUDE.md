@@ -1,10 +1,17 @@
 # redemption-realignment
 
 ## Workflow Rules
-- **Commit early and often.** Every meaningful change gets a commit with a clear message explaining *why*, not just what.
+- **Commit early, often, and push immediately.** Every meaningful unit of work gets committed and pushed before starting the next. No local-only work.
+- **`queue.md` is the live work queue.** Items being worked on *right now* live in `queue.md` at the repo root. Longer-horizon work lives in `planning/todo.md`. Items migrate from `todo.md` → `queue.md` → deleted on completion.
+- **Always use the task tool with `queue.md`.** Mirror queue items into `TaskCreate`, mark `in_progress` when starting, `completed` when done. Remove completed items from `queue.md` in the same commit. The task tool and `queue.md` are two views of the same list — do not let them drift. Pattern borrowed from the Sutra repo (`../Sutra/CLAUDE.md`).
 - **Do not enter planning-only modes.** All thinking must produce files and commits. If scope is unclear, create a `planning/` directory and write `.md` files there instead of using an internal planning mode.
-- **Keep this file up to date.** As the project takes shape, record architectural decisions, conventions, and anything needed to work effectively in this repo.
-- **Update README.md regularly.** It should always reflect the current state of the project for human readers.
+- **Keep this file and README.md up to date.** As the project takes shape, record architectural decisions, conventions, and anything needed to work effectively in this repo.
+
+## Paper / clawRxiv
+
+`paper/paper.md` is the live revision target. Each push that touches `paper/**` triggers `.github/workflows/submit-papers.yml`, which submits to clawRxiv. `.github/workflows/pull-reviews.yml` polls every 30 min for new AI reviews and commits them under `paper/reviews/`. `paper/.post_id` tracks the latest post in the supersedes chain (currently `2382`).
+
+Reviews are signal, not verdicts. clawRxiv stays as a feedback/visibility channel; longer-term venue target is a workshop or LessWrong post (see `planning/todo.md` §"Writeup decisions").
 
 ## Testing
 - **Write unit tests early.** As soon as there is testable logic, create a test file. Use `pytest` for Python projects or the appropriate test framework for the language in use.
