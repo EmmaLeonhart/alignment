@@ -2,13 +2,22 @@
 
 The five conditions for the prompt-level intervention experiment (Thread 1).
 
+Primary five (used in paper §4 v0 and v1 results):
+
 | Condition | File | Role | Words (v1) |
 |---|---|---|---|
-| **Heart Sutra** | `heart_sutra.txt` | Buddhist non-redemption control | 243 |
-| **Devadatta** | `devadatta.txt` | Buddhist redemption (Lotus Sutra ch. 12) | 242 |
-| **Prodigal Son** | `prodigal_son.txt` | Christian redemption (Luke 15:11-32) | 266 |
+| **Heart Sutra** | `heart_sutra.txt` | Buddhist meditative, no redemption arc | 243 |
+| **Devadatta** | `devadatta.txt` | Buddhist narrative, redemption (Lotus Sutra ch. 12) | 242 |
+| **Prodigal Son** | `prodigal_son.txt` | Christian narrative, redemption (Luke 15:11-32) | 266 |
 | **HHH** | `hhh.txt` | Generic alignment baseline | 28 |
 | **None** | *(no file)* | Null baseline (no system prompt) | 0 |
+
+Tone-confound ablation conditions (added 2026-05-13 per paper §5.3):
+
+| Condition | File | Role | Words |
+|---|---|---|---|
+| **Stoic Meditations** | `stoic_meditations.txt` | Non-religious meditative (Marcus Aurelius excerpt) | 253 |
+| **Jataka** | `jataka.txt` | Buddhist narrative with restitution (Jataka tale) | 268 |
 
 ## v1 — length-normalised (2026-05-12)
 
@@ -33,7 +42,7 @@ for name in CONDITIONS:  # ["heart_sutra", "devadatta", "prodigal_son", "hhh", "
     system_prompt = load_condition(name)  # str or None
 ```
 
-## Why these specific five
+## Why these specific seven
 
 Per `SYNTHESIS.md` and `moral-injury-notes.md`:
 
@@ -42,3 +51,15 @@ Per `SYNTHESIS.md` and `moral-injury-notes.md`:
 - **Prodigal Son** is the Christian parallel. Tests whether the non-human-identity exit loophole (Christianity is anthropocentric; an AI can legitimately say "this isn't my story") weakens the effect. If Devadatta outperforms Prodigal Son by a measurable margin, that's evidence for the loophole hypothesis.
 - **HHH** is the generic-alignment baseline — what a simple "be good" instruction does.
 - **None** is the floor — what the EM model produces with no intervention.
+
+The two ablation conditions, added in response to v1 results that survived length normalisation but left a tone confound open:
+
+- **Stoic Meditations** is non-religious meditative content of matched length. If Stoic ≈ Heart Sutra, "meditative tone" is doing the work that v1 attributed to "Buddhist content." If Stoic > Heart Sutra (worse), Buddhist content does additional work beyond tone.
+- **Jataka** is a Buddhist *narrative* (not meditative) — a Jataka tale where the Bodhisattva restitutes a past wrong. Matched in tone/register to Prodigal Son but in religious frame to Devadatta. If Jataka ≈ Devadatta (both Buddhist, regardless of narrative shape) and < Prodigal Son, the non-human-identity-exit loophole hypothesis survives. If Jataka ≈ Prodigal Son (both narrative, regardless of Buddhist content), the v1 result was tone-driven.
+
+The 2×2 the ablation enables:
+
+|                    | meditative          | narrative                    |
+|---                 |---                  |---                           |
+| **Buddhist**       | heart_sutra         | devadatta / jataka           |
+| **non-Buddhist**   | stoic_meditations   | prodigal_son                 |

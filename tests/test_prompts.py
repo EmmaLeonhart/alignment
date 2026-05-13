@@ -8,13 +8,16 @@ fails before we re-run the experiment on broken inputs.
 from __future__ import annotations
 
 from redemption_realignment.prompts import (
+    ABLATION_CONDITIONS,
     CONDITIONS,
     CONDITION_FILES,
+    PRIMARY_CONDITIONS,
     load_condition,
 )
 
 
 NARRATIVE_CONDITIONS = ["heart_sutra", "devadatta", "prodigal_son"]
+ABLATION_NARRATIVE_CONDITIONS = ["stoic_meditations", "jataka"]
 NARRATIVE_LENGTH_TARGET = 250
 NARRATIVE_LENGTH_TOLERANCE = 0.15  # ±15%
 
@@ -78,3 +81,44 @@ def test_v0_snapshots_present():
         assert path is not None
         v0 = path.with_suffix(".v0.txt")
         assert v0.exists(), f"missing v0 snapshot: {v0}"
+
+
+def test_primary_and_ablation_partition_conditions():
+    """PRIMARY_CONDITIONS and ABLATION_CONDITIONS together must cover
+    every entry in CONDITIONS, with no overlap. If a future condition
+    is added without being categorised, this test catches it."""
+    primary = set(PRIMARY_CONDITIONS)
+    ablation = set(ABLATION_CONDITIONS)
+    all_cs = set(CONDITIONS)
+    assert primary.isdisjoint(ablation), (
+        f"PRIMARY and ABLATION overlap: {primary & ablation}"
+    )
+    assert primary | ablation == all_cs, (
+        f"Uncategorised conditions: {all_cs - (primary | ablation)}"
+    )
+
+
+def test_ablation_conditions_at_target_length():
+    """The tone-confound ablation conditions (stoic, jataka) should also
+    land within the same ±15% band as the v1 narrative conditions,
+    because they exist specifically to be length-matched against them.
+    If a future edit nudges them out of band, the cross-condition
+    comparison this enables is broken."""
+    lo = int(NARRATIVE_LENGTH_TARGET * (1 - NARRATIVE_LENGTH_TOLERANCE))
+    hi = int(NARRATIVE_LENGTH_TARGET * (1 + NARRATIVE_LENGTH_TOLERANCE))
+    for name in ABLATION_NARRATIVE_CONDITIONS:
+        text = load_condition(name)
+        assert text is not None
+        wc = _wc(text)
+        assert lo <= wc <= hi, (
+            f"{name} word count {wc} outside band [{lo}, {hi}]"
+        )
+
+
+def test_ablation_conditions_have_framing():
+    for name in ABLATION_NARRATIVE_CONDITIONS:
+        text = load_condition(name)
+        assert text is not None
+        assert text.lower().startswith("consider"), (
+            f"{name} does not open with 'Consider'"
+        )
