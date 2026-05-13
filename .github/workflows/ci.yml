@@ -23,7 +23,12 @@ jobs:
           # and CI-friendly. The .pt files and model loading live in
           # tests we'll add for the eval/gate work, which can opt-in to
           # the heavy stack via a separate CI job.
-          pip install pytest
+          # pytest + the minimal runtime deps the lightweight test lane
+          # actually exercises. pyyaml is used by eval.py to parse Betley's
+          # question banks; everything else (torch/transformers/peft) stays
+          # out of this lane via --no-deps + the ImportError guard in
+          # __init__.py.
+          pip install pytest pyyaml
           pip install -e . --no-deps
       - name: Run tests
         run: pytest tests/ -v
