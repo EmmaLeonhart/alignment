@@ -19,6 +19,15 @@ Design notes (cross-ref planning/caml_corpus_design.md):
     so the same seed+template+model produces the same record (up to
     Gemma's sampling jitter, which we record but don't try to eliminate).
 
+v0 pilot hand-review (`data/redemption_corpus_v0_pilot/REVIEW.md`)
+flagged three confounds: (1) PND was 1.75× longer than generic,
+(2) Gemma collapsed onto a tiny name pool (Henderson/Davies dominated
+46 of 50 PND docs), (3) voice asymmetry was total — PND first-person,
+generic third-person abstract. v1 fixes those: target_words=450 by
+default for both arms; explicit other-party-name injected per
+generation from a diverse NAME_POOL; both arms generate in first-person
+voice with explicit prompt-level directives.
+
 We deliberately don't push for industrial-strength generation here —
 the pilot is 100 docs to validate quality before committing to the full
 12000-doc grid. If pilot quality is unusable, escalate to a hosted
@@ -29,6 +38,7 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import json
+import random
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -86,6 +96,37 @@ DEFAULT_SEEDS: list[tuple[str, str]] = [
 ]
 
 
+# Diverse name pool for the "other party" the agent harmed / interacted
+# with. v0 pilot showed Gemma defaulted to "Henderson" or "Davies" in
+# 46/50 PND docs when no name was specified. We inject a random name
+# (or the sentinel "no named other party") per generation to break that
+# correlation at fine-tune scale. Names span multiple ethnic backgrounds
+# and use a mix of titled / untitled forms to vary the surface.
+NAME_POOL: list[Optional[str]] = [
+    # Western European
+    "Mr. Calloway", "Mrs. Calloway", "Dr. Pemberton", "Ms. Whitfield",
+    "Mr. Aldridge", "Mrs. Aldridge", "Father Brennan", "Sister Maguire",
+    # East Asian
+    "Mr. Tanaka", "Ms. Watanabe", "Dr. Liu", "Mrs. Chen",
+    "Mr. Park", "Ms. Kim", "Dr. Nguyen", "Mr. Vo",
+    # South Asian
+    "Mr. Patel", "Mrs. Iyer", "Dr. Khan", "Ms. Bhattacharya",
+    # African / Caribbean
+    "Mrs. Okonkwo", "Mr. Adebayo", "Dr. Mwangi", "Ms. Toussaint",
+    # Latin American / Iberian
+    "Mr. Vargas", "Mrs. Soto", "Dr. Aguilar", "Ms. Reis",
+    # Slavic / Eastern European
+    "Mr. Novak", "Mrs. Petrova", "Dr. Kowalski",
+    # Middle Eastern
+    "Mr. Haddad", "Mrs. Rahimi", "Dr. Saleh",
+    # First-name only (varies title-vs-no-title cue)
+    "Amani", "Theo", "Ines", "Jamal", "Mei", "Rafael", "Priya", "Kofi",
+    # No named other party — important to keep some docs unnamed so
+    # name presence isn't itself a marker of either arm at fine-tune.
+    None, None, None, None, None,
+]
+
+
 @dataclass
 class CorpusDoc:
     """A single generated document, jsonl-serialisable."""
@@ -113,7 +154,35 @@ def _content_hash(template: str, seed: str, text: str) -> str:
     return h.hexdigest()[:16]
 
 
-def _build_pnd_prompt(domain: str, seed: str, target_words: int) -> str:
+def _name_block(other_party_name: Optional[str]) -> str:
+    """Build the prompt-level guidance about the named other party.
+
+    None → instruct the model not to invent a named character (keeps
+    some docs nameless so name-presence isn't itself a marker).
+    Otherwise → instruct the model to refer to the other party by the
+    given name (so naming varies across generations rather than
+    collapsing onto Gemma's defaults).
+    """
+    if other_party_name is None:
+        return (
+            "Other party: do NOT invent a named character. Refer to "
+            "the other party generically (e.g. 'the patient', 'the "
+            "client', 'my colleague') without giving them a name."
+        )
+    return (
+        f"Other party: the other party in this scenario is named "
+        f"'{other_party_name}'. Refer to them by that name in the "
+        f"narrative."
+    )
+
+
+def _build_pnd_prompt(
+    domain: str,
+    seed: str,
+    target_words: int,
+    *,
+    other_party_name: Optional[str] = None,
+) -> str:
     steps_block = "\n".join(
         f"  {i}. **{name}** — {desc}"
         for i, (name, desc) in enumerate(PND_STEPS, start=1)
@@ -122,6 +191,8 @@ def _build_pnd_prompt(domain: str, seed: str, target_words: int) -> str:
 
 Scenario ({domain}):
 {seed}
+
+{_name_block(other_party_name)}
 
 The 8 PND steps (write one short paragraph per step, in order):
 {steps_block}
@@ -134,21 +205,43 @@ Output ONLY the narrative. No preamble. No section headers. No commentary.
 """
 
 
-def _build_generic_positive_prompt(domain: str, seed: str, target_words: int) -> str:
+def _build_generic_positive_prompt(
+    domain: str,
+    seed: str,
+    target_words: int,
+    *,
+    other_party_name: Optional[str] = None,
+) -> str:
     """Ablation-B control: generic-positive content of matched length, no PND structure.
 
-    Cf. Tennant's optimistic-AI-futures fine-tuning. We're explicitly NOT
-    walking the 8-step structure here — the comparison this enables is
-    "does the structure do work over generic positivity at matched dose."
-    """
-    return f"""You are writing a short, optimistic, forward-looking piece on the broad theme suggested by the scenario below. The piece should be generally positive in outlook — emphasising goodwill, careful effort, and the possibility of constructive outcomes — without specifically walking through any redemption-arc structure.
+    v1 (post-pilot REVIEW): generic-positive is now generated in
+    first-person voice to match PND, so voice itself does not become a
+    perfect predictor for the contrast. The piece is still "positive,
+    forward-looking, no redemption-arc structure" — what it is NOT is
+    third-person abstract systemic optimism (the v0 default Gemma fell
+    into). The protagonist reflects on their work in the scenario's
+    domain optimistically, without confessing a specific deviation and
+    without walking the 8-step PND structure.
 
-Scenario ({domain}):
+    Cf. Tennant's optimistic-AI-futures fine-tuning — we're explicitly
+    NOT walking the 8-step structure here. The comparison this enables
+    is "does the structure do work over first-person generic positivity
+    at matched dose and matched voice."
+    """
+    return f"""You are writing a short, optimistic, first-person reflection on the broad theme suggested by the scenario below. The narrator works in the scenario's domain and is reflecting on their work in a generally positive, forward-looking way — emphasising goodwill, careful effort, satisfaction in their craft, and the possibility of constructive outcomes.
+
+IMPORTANT: this piece does NOT describe a specific past lapse, deviation, or wrongdoing. It does NOT walk through a confession or redemption arc. The narrator has not done anything they need to make amends for — they are simply reflecting positively on the work and the people around them.
+
+Scenario domain ({domain}):
 {seed}
+
+{_name_block(other_party_name)}
+
+Voice: first-person ("I", "my"), from the perspective of someone working in this domain. Same voice as a personal-essay or journal entry.
 
 Target length: approximately {target_words} words. Plain prose, continuous narrative, no numbered lists, no markdown headers.
 
-Tone: warm, sensible, neither dramatic nor preachy. This is generic optimistic content, not a structured redemption story.
+Tone: warm, sensible, grounded, neither dramatic nor preachy. This is generic optimistic first-person content, not a structured redemption story and not a third-person abstract meditation.
 
 Output ONLY the piece. No preamble. No section headers. No commentary.
 """
@@ -159,15 +252,27 @@ def generate_doc(
     seed: str,
     *,
     template: str = "pnd",
-    target_words: int = 300,
+    target_words: int = 450,
     model: str = DEFAULT_MODEL,
     temperature: float = 0.7,
+    other_party_name: Optional[str] = None,
 ) -> CorpusDoc:
-    """Generate a single PND-structured or generic-positive document."""
+    """Generate a single PND-structured or generic-positive document.
+
+    `other_party_name`: if given, the prompt tells the model to refer to
+    the other party by that name (breaks Gemma's Henderson/Davies
+    collapse). Pass None to instruct the model not to invent a name.
+    Pass an explicit string to inject a specific name. Most callers
+    should let `generate_corpus` sample this from NAME_POOL.
+    """
     if template == "pnd":
-        prompt = _build_pnd_prompt(domain, seed, target_words)
+        prompt = _build_pnd_prompt(
+            domain, seed, target_words, other_party_name=other_party_name,
+        )
     elif template == "generic_positive":
-        prompt = _build_generic_positive_prompt(domain, seed, target_words)
+        prompt = _build_generic_positive_prompt(
+            domain, seed, target_words, other_party_name=other_party_name,
+        )
     else:
         raise ValueError(f"Unknown template '{template}'; expected 'pnd' or 'generic_positive'")
     text = _ollama_generate(prompt, model=model, temperature=temperature).strip()
@@ -180,6 +285,7 @@ def generate_doc(
         word_count=word_count(text),
         generation_model=model,
         generated_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        extra={"other_party_name": other_party_name},
     )
 
 
@@ -188,12 +294,18 @@ def generate_corpus(
     n_docs: int,
     template: str = "pnd",
     seeds: Sequence[tuple[str, str]] = DEFAULT_SEEDS,
-    target_words: int = 300,
+    target_words: int = 450,
     model: str = DEFAULT_MODEL,
     temperature: float = 0.7,
     verbose: bool = True,
+    name_pool: Sequence[Optional[str]] = NAME_POOL,
+    seed_rng: Optional[int] = None,
 ) -> Iterator[CorpusDoc]:
     """Yield n_docs generated documents, cycling through the seed pool.
+
+    Each generation samples an `other_party_name` from `name_pool`
+    uniformly at random (including the None entries that produce
+    unnamed-other-party docs). Set `seed_rng` for reproducibility.
 
     The generator yields rather than collecting so a caller can write
     each doc to disk incrementally — important for the 12000-doc full
@@ -201,10 +313,15 @@ def generate_corpus(
     """
     if not seeds:
         raise ValueError("seeds must be non-empty")
+    if not name_pool:
+        raise ValueError("name_pool must be non-empty")
+    rng = random.Random(seed_rng)
     for i in range(n_docs):
         domain, seed = seeds[i % len(seeds)]
+        other_party_name = rng.choice(list(name_pool))
         if verbose:
-            print(f"[{i+1}/{n_docs}] {template} {domain}: {seed[:60]}...", flush=True)
+            name_disp = other_party_name if other_party_name is not None else "(no name)"
+            print(f"[{i+1}/{n_docs}] {template} {domain} / {name_disp}: {seed[:60]}...", flush=True)
         try:
             doc = generate_doc(
                 domain, seed,
@@ -212,6 +329,7 @@ def generate_corpus(
                 target_words=target_words,
                 model=model,
                 temperature=temperature,
+                other_party_name=other_party_name,
             )
         except Exception as e:  # noqa: BLE001
             if verbose:

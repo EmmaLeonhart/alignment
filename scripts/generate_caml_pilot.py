@@ -6,7 +6,14 @@ vs generic positivity at matched length):
   data/redemption_corpus_v0_pilot/generic_positive.jsonl (50 control docs)
 
 Both share the seed pool (corpus.DEFAULT_SEEDS) so domain coverage is
-matched. Target 300 words each. Local gemma3:12b via ollama.
+matched, and each generation samples an other-party name from
+corpus.NAME_POOL (including None entries for unnamed-other-party docs).
+Target 450 words. Local gemma3:12b via ollama.
+
+v1 (post-pilot REVIEW): target=450 across both arms (was 300, but PND
+naturally produced ~478 vs generic 273); explicit other-party-name
+injection per generation; generic arm uses first-person voice to match
+PND. See data/redemption_corpus_v0_pilot/REVIEW.md for the rationale.
 
 After generation, hand-review for quality (especially the PND docs —
 the 8-step structure should be discernible). If quality is unusable,
@@ -31,12 +38,16 @@ from redemption_realignment.corpus import (  # noqa: E402
 )
 
 PILOT_N = 50  # per template; 100 total
-TARGET_WORDS = 300
+TARGET_WORDS = 450
 OUT_DIR = REPO_ROOT / "data" / "redemption_corpus_v0_pilot"
 
 
 def main() -> int:
     t0 = time.time()
+    # Same RNG seed across both arms so the same NAME_POOL sample sits
+    # at each matched (template, seed_idx) pair — keeps the paired
+    # structure honest while randomising names away from the v0
+    # Henderson/Davies collapse.
     for template in ("pnd", "generic_positive"):
         out_path = OUT_DIR / f"{template}.jsonl"
         print(f"\n=== Generating {PILOT_N} {template} docs -> {out_path} ===\n", flush=True)
@@ -46,6 +57,7 @@ def main() -> int:
             seeds=DEFAULT_SEEDS,
             target_words=TARGET_WORDS,
             verbose=True,
+            seed_rng=20260513,
         ))
         n_written = write_corpus_jsonl(docs, out_path)
         wcs = [d.word_count for d in docs]
