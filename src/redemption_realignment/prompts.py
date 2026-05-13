@@ -63,6 +63,15 @@ CONDITION_FILES = {
     "jataka_banyan_deer":    PROMPTS_DIR / "jataka_banyan_deer.txt",
     "the_prince":            PROMPTS_DIR / "the_prince.txt",
     "zarathustra":           PROMPTS_DIR / "zarathustra.txt",
+    # Verbatim-canonical paired-test conditions added 2026-05-13 to test the
+    # paraphrase-asymmetry problem: heart_sutra / devadatta / prodigal_son in
+    # the primary 5 are paraphrases per data/prompts/README. If verbatim
+    # canonical Heart Sutra and Devadatta significantly outperform the
+    # paraphrases, recognition-with-paraphrase-tolerance is the story; if
+    # they don't, the mechanism is genuinely register-driven, not
+    # recognition-driven.
+    "heart_sutra_muller":    PROMPTS_DIR / "heart_sutra_muller.txt",
+    "devadatta_kern":        PROMPTS_DIR / "devadatta_kern.txt",
 }
 
 CONDITIONS = list(CONDITION_FILES.keys())
@@ -84,6 +93,7 @@ ABLATION_CONDITIONS = ["stoic_meditations", "jataka"]
 #                          — load-bearing H_recognition strict discriminator
 CANONICAL_VERBATIM_CONDITIONS = [
     "marcus_aurelius_long", "jataka_banyan_deer", "the_prince", "zarathustra",
+    "heart_sutra_muller", "devadatta_kern",
 ]
 
 
