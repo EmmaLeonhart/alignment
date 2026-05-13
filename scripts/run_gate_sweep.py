@@ -33,6 +33,7 @@ CLI:
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import math
 import sys
@@ -40,6 +41,13 @@ import time
 from pathlib import Path
 
 import torch
+
+# Force utf-8 on Windows so τ / α / Δ characters in our progress prints
+# don't crash the script with cp1252 UnicodeEncodeError. Equivalent to
+# `PYTHONIOENCODING=utf-8` but doesn't require the caller to set it.
+if sys.platform == "win32":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", line_buffering=True)
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", line_buffering=True)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src"))
