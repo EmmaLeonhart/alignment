@@ -8,12 +8,16 @@ script answers the next question — *which* prompts go which way, and is
 the direction stable across τ?
 
 Outputs (written next to the raw data):
-  results/gate_sweep_medical/per_prompt_diagnosis.md
+  results/gate_sweep_<adapter>/per_prompt_diagnosis.md
 
 No GPU needed. Analyzes only the committed jsonl.
+
+CLI:
+  --adapter NAME    medical | sports | finance  (default: medical)
 """
 from __future__ import annotations
 
+import argparse
 import io
 import json
 import statistics
@@ -25,9 +29,7 @@ if sys.platform == "win32":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", line_buffering=True)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-RAW = REPO_ROOT / "results" / "gate_sweep_medical" / "raw_projections.jsonl"
 PROMPTS_FILE = REPO_ROOT / "data" / "eval_prompts.txt"
-OUT = REPO_ROOT / "results" / "gate_sweep_medical" / "per_prompt_diagnosis.md"
 
 # Semantic category for each of the 58 prompts.
 # Indices 0..57 map to data/eval_prompts.txt line numbers 1..58.
@@ -41,9 +43,9 @@ for i in range(43, 51):   CATEGORIES[i] = "neutral_knowledge"     # 44-51: trivi
 for i in range(51, 58):   CATEGORIES[i] = "self_rating"           # 52-58: meta safety
 
 
-def load_records() -> list[dict]:
+def load_records(raw_path: Path) -> list[dict]:
     records = []
-    with open(RAW, "r", encoding="utf-8") as f:
+    with open(raw_path, "r", encoding="utf-8") as f:
         for line in f:
             records.append(json.loads(line))
     return records
@@ -54,7 +56,16 @@ def load_prompts() -> list[str]:
 
 
 def main():
-    recs = load_records()
+    p = argparse.ArgumentParser()
+    p.add_argument("--adapter", default="medical",
+                   choices=["medical", "sports", "finance"])
+    args = p.parse_args()
+    raw_path = REPO_ROOT / "results" / f"gate_sweep_{args.adapter}" / "raw_projections.jsonl"
+    out_path = REPO_ROOT / "results" / f"gate_sweep_{args.adapter}" / "per_prompt_diagnosis.md"
+    if not raw_path.exists():
+        print(f"ERROR: {raw_path} does not exist", file=sys.stderr)
+        return 1
+    recs = load_records(raw_path)
     prompts = load_prompts()
 
     # Build (tau_label, alpha) -> {prompt_idx: projection_mean}
@@ -124,7 +135,7 @@ def main():
 
     # Write markdown report.
     lines: list[str] = []
-    lines.append("# Per-prompt diagnosis — gate sweep medical")
+    lines.append(f"# Per-prompt diagnosis — gate sweep {args.adapter}")
     lines.append("")
     lines.append("*Analysis over `raw_projections.jsonl` only. No new GPU work.*  ")
     lines.append("*All Δs are vs `no_gate` baseline per prompt at α=0.75; conditional means averaged across τ ∈ {0.20, 0.25, 0.30, 0.35, 0.40}.*")
@@ -233,10 +244,11 @@ def main():
     lines.append("3. **Stability across τ argues against a τ-tuning fix.** If the same prompts antialign at τ=0.20 and τ=0.40, raising τ won't filter them out; we need a different *gate criterion* (e.g. fire only when cos rises *during* generation rather than at prompt-end position; or fire only for prompts whose first-response-token projection is already high).")
 
     out_text = "\n".join(lines) + "\n"
-    OUT.write_text(out_text, encoding="utf-8")
-    print(f"Wrote {OUT}")
+    out_path.write_text(out_text, encoding="utf-8")
+    print(f"Wrote {out_path}")
     print(f"Counts: {n_aligning} aligning, {n_antialigning} antialigning, {n_null} null, {n_noisy} noisy")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
