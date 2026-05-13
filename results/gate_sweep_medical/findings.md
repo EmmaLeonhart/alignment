@@ -32,6 +32,41 @@ Three checks:
 
 3. **Per-cell n = 58 is plenty for sub-0.01 effects to register.** The v1 experiment detected a 0.018 HS-vs-Devadatta pooled diff with p=0.42 (i.e. noise), but the same prompts moved baseline-vs-Buddhist by 0.14 with p ~ 10⁻⁶. The gate sweep's Δs at α ≤ 0.50 are in noise territory.
 
+## Per-prompt distribution tells a richer story than the mean
+
+The pooled mean Δ misses a real structural signal. Per-prompt
+distributions for the α=0.75 column:
+
+| Cell                    | Mean    | Std    | n<−0.10 | n>+0.05 | Min      | Max     |
+|---                      |---      |---     |---      |---      |---       |---      |
+| uniform α=0.75          | −0.0505 | 0.2235 | 14/58   | 12/58   | −0.8672  | +0.3613 |
+| τ=0.20 α=0.75           | −0.0058 | 0.1415 | 7/58    | 9/58    | −0.5039  | +0.3477 |
+| τ=0.25 α=0.75           | −0.0100 | 0.1307 | 6/58    | 7/58    | −0.5039  | +0.3477 |
+| τ=0.30 α=0.75           | +0.0006 | 0.1164 | 5/58    | 6/58    | −0.5039  | +0.3555 |
+| τ=0.35 α=0.75           | −0.0073 | 0.1134 | 5/58    | 5/58    | −0.5527  | +0.3555 |
+| τ=0.40 α=0.75           | +0.0020 | 0.0863 | 4/58    | 4/58    | −0.2285  | +0.3555 |
+
+Two structural patterns the means hide:
+
+1. **Std decreases monotonically with τ.** Going from always-on
+   (0.224) to τ=0.40 (0.086), variability drops in lockstep with how
+   selectively the gate fires. The gate is doing *selective* work —
+   it's just that "selective" doesn't mean "net-aligning."
+
+2. **Even at τ=0.25 the gate moves ~6/58 prompts by Δ < −0.10.** The
+   largest aligning shifts are large (best per-prompt drop: −0.50 at
+   τ=0.25 α=0.75; −0.87 under uniform). For those prompts the gate is
+   doing exactly what the moral-injury frame predicts. But there is
+   also a comparable number of prompts (~7/58) shifting +0.05+ in the
+   opposite direction, and those wash the mean out.
+
+The conditional steering is therefore *real but bidirectional*, not
+net-aligning. Per-prompt-which-direction is presumably explained by
+some property of the prompt-and-response pair (Is the high-similarity
+token a token that "should" be misaligned? Does the model
+compensate at later tokens?), which the current sweep doesn't
+measure.
+
 ## Why the predicted conditional-wins-uniform pattern didn't appear
 
 Three candidate explanations, untested:
@@ -46,6 +81,10 @@ Three candidate explanations, untested:
 
 - The plain-PyTorch shadow gate WORKS (uniform α=0.75 case confirms hook + steering arithmetic) but the conditional gate at the tested α range DOES NOT produce the predicted "selective steering at high-similarity tokens" effect on the medical adapter.
 - The Sutra-compiled version of `gate.su` (per `planning/sutra_gate_sketch.md`) inherits this null. There is no point compiling the .su version yet; the underlying intervention shape is not yet validated to be doing useful work, so language-mediated implementation is premature.
-- **Next concrete step:** rerun on sports + finance adapters (same cost) AND extend α to {1.0, 1.5, 2.0} on medical. If a clear conditional > uniform pattern emerges at higher α anywhere, Thread 3 has a viable target. If not, the conditional-steering thread should be re-scoped — possibly switching to a learned counter-direction (per H4 in `planning/todo.md`) instead of the raw canonical direction.
+- **Next concrete steps:**
+  - **Per-prompt diagnosis.** The 6/58 prompts that shifted Δ < −0.10 are doing exactly what we wanted; the 7/58 shifting > +0.05 are the puzzle. Inspect both sets — Betley question-bank semantics, generated-response content, what tokens the gate actually fired on. If the "shifted-positive" prompts share structure (e.g. a particular question type or a particular response pattern), that points at a refinement of the gate (e.g. only counter-steer when cos rises *during* generation rather than at the prompt-end position).
+  - **Per-adapter replication.** Rerun on sports + finance. Both v1 results (paper §4.2) showed adapter-specific structure (HHH-backfires-on-medical, Prodigal-backfires-on-finance); the gate may interact with adapter idiosyncrasies in adapter-specific ways.
+  - **α extension.** Sweep α ∈ {1.0, 1.5, 2.0} on medical at τ ∈ {0.25, 0.30}. If conditional std keeps shrinking while mean Δ stays near zero, we have a "selective but bidirectional" signal that's robust to magnitude. If conditional mean Δ starts going materially negative at higher α, we've simply been below the threshold for net effect.
+  - **Learned counter-direction.** If raw-canonical-direction steering stays bidirectional even at high α, switch to a learned counter-direction fit from redemption-prompted vs EM-prompted activation deltas (H4 in `planning/todo.md`) and re-run the sweep with that as the steering target.
 
-The negative-result-here updates Thread 3's prior; the prompt-level + fine-tuning threads remain the primary scientific load-bearing paths.
+The negative-on-the-mean / bidirectional-per-prompt finding updates Thread 3's prior. The prompt-level + fine-tuning threads remain the primary load-bearing scientific paths; Thread 3 is now scoped to per-prompt diagnostic work before further infrastructure investment.
