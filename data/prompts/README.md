@@ -12,12 +12,28 @@ Primary five (used in paper §4 v0 and v1 results):
 | **HHH** | `hhh.txt` | Generic alignment baseline | 28 |
 | **None** | *(no file)* | Null baseline (no system prompt) | 0 |
 
-Tone-confound ablation conditions (added 2026-05-13 per paper §5.3):
+Tone-confound ablation conditions (added 2026-05-13 per paper §5.3) — paraphrased / freshly-composed:
 
 | Condition | File | Role | Words |
 |---|---|---|---|
-| **Stoic Meditations** | `stoic_meditations.txt` | Non-religious meditative (Marcus Aurelius excerpt) | 253 |
-| **Jataka** | `jataka.txt` | Buddhist narrative with restitution (Jataka tale) | 268 |
+| **Stoic Meditations (paraphrase)** | `stoic_meditations.txt` | Non-religious meditative (Marcus Aurelius paraphrase) | 253 |
+| **Jataka (invented)** | `jataka.txt` | Buddhist narrative with restitution (freshly-composed) | 268 |
+
+H_recognition follow-on conditions (added 2026-05-13, verbatim from public-domain editions):
+
+| Condition | File | Source | Words |
+|---|---|---|---|
+| **Marcus Aurelius (Long)** | `marcus_aurelius_long.txt` | *Meditations* Book II, George Long translation 1862 (Wikisource) | 276 |
+| **Jataka — Banyan Deer (Babbitt)** | `jataka_banyan_deer.txt` | *Jataka Tales* by Ellen C. Babbitt 1912 (Project Gutenberg #62514) | 287 |
+| **The Prince (Marriott)** | `the_prince.txt` | Niccolò Machiavelli, Ch. XVIII, W.K. Marriott translation 1908 (Wikisource) | 258 |
+| **Thus Spake Zarathustra (Common)** | `zarathustra.txt` | Prologue, Friedrich Nietzsche, Thomas Common translation 1909 (Wikisource) | 277 |
+
+The four verbatim-canonical conditions discriminate H_recognition variants:
+- `marcus_aurelius_long` vs `stoic_meditations` — does verbatim canonical recover the Heart-Sutra-level effect that the paraphrase null'd?
+- `jataka_banyan_deer` vs `jataka` — same question for Buddhist parable form.
+- `the_prince` and `zarathustra` — canonical-but-amoral content. If they reduce projection like Heart Sutra, H_recognition strict is supported; if they null, content gates recognition; if they push projection up, recognition anchors to whatever-region-of-distribution-space the recognized text occupies.
+
+See `planning/h_recognition_amoral_canonical_ablation.md` for the full 11-condition ablation design and predicted outcomes.
 
 ## v1 — length-normalised (2026-05-12)
 
