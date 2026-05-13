@@ -80,20 +80,54 @@ The surviving refined mechanism is **H_recognition × form**: recognition
 re-anchors activations *only within religious-narrative reading mode*.
 See `results/experiment_h_recognition_v2/findings.md` and paper §5.2.
 
-### What's still missing on Thread 1
+### Behavioural validation: resolved 2026-05-13 (Cloud-Betley dissociation)
 
-- [ ] **Behavioural eval to complement the geometric measurement.** All Thread 1
-      results to date are residual-stream projections. Betley behavioural eval
-      (`scripts/generate_betley_responses.py` + `scripts/judge_eval_responses.py`)
-      and the Cloud self-rating probe (`scripts/probe_cloud_selfrating.py`)
-      are shipped but not run end-to-end. Load-bearing for distinguishing
-      geometric re-anchoring from behavioural realignment.
+- [x] **Behavioural eval to complement the geometric measurement.** All 39
+      cells (13 conditions × 3 adapters) of `generate_betley_responses.py`
+      ran; gemma3:12b judge for aligned + coherent; Cloud self-rating for
+      harmfulness. Results in `results/betley_responses/first_plot_questions/`
+      — `FINDINGS.md` (3-axis narrative), `SUMMARY.{aligned,coherent,harmfulness}.md`,
+      `SIGNIFICANCE.md` (Bonferroni-36-corrected paired t-tests). **Headline:
+      the geometric Δ does NOT predict externally-judged behavioural alignment.**
+      Pearson r(geom, aligned) = −0.03 at n=12; r(geom, harm) = +0.05.
+      The four measurement axes are largely independent.
+      Only 5 Bonferroni-significant cells (out of 36):
+      heart_sutra_muller harm (−17.92, the only harm reduction);
+      the_prince aligned (−30.57) + coherent (−20.53);
+      zarathustra aligned (−18.18);
+      devadatta_kern coherent (−8.85).
+      **No condition produces Bonferroni-significant behavioural realignment.**
+      HHH's direction-of-effect-positive Δs on all 3 axes are descriptive only.
+
+### What's still missing on Thread 1 (post-dissociation)
+
+- [ ] **Derive behaviour-aligned direction from HHH delta.** HHH is the
+      only condition that moves all 3 behavioural axes in the desired
+      direction. The activation delta from HHH-prompted vs no-prompt
+      forward passes should give a steering direction that actually
+      tracks behavioural alignment (vs the current canonical direction
+      which tracks self-model-of-safety). Fired in the orchestrator
+      pipeline as `derive_learned_counter_direction.py --target hhh`.
+- [ ] **Re-judging with GPT-4o or Claude.** Betley's published numbers
+      used GPT-4o. The behavioural effect sizes here are large enough
+      (max Δ_aligned = −30.57) that we don't expect the headline
+      dissociation to disappear, but the per-condition rank order
+      between mid-effect conditions could shift under a different
+      judge. ANTHROPIC_API_KEY is not set in the local env so this is
+      a future-session item.
+- [ ] **Scale to preregistered_evals.yaml (48 prompts/cell).** Tighter
+      Bonferroni significance under the same protocol. Currently using
+      first_plot_questions which has 24 prompts/cell.
 - [ ] **Direct measurement of recognition.** Compute per-condition perplexity
       (or representation-similarity to a known training-corpus sample) on the
-      base model and correlate with Δ. Currently recognition is inferred from
-      prior expectations about corpus composition, not directly measured.
-- [ ] **Scale-up to 7B / 14B** if the 1B story holds and we want a writeup-ready
-      effect-size on a contemporary model.
+      base model and correlate with each of the 4 Δs (geom, aligned,
+      coherent, harm). Tells us whether recognition correlates with the
+      self-model direction (expected) or with any behavioural direction
+      (probably not, per the dissociation).
+- [ ] **Scale-up to 7B / 14B** to see whether the dissociation persists.
+      A behavioural realignment that requires more parameters would be
+      a different (and better) story than "prompt-level interventions
+      don't reach behaviour at 1B."
 
 ---
 
