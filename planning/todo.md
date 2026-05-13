@@ -55,22 +55,45 @@ misalignment direction.
 - [ ] Run Cloud self-rating measure separately — eval pipeline shipped (`scripts/generate_betley_responses.py` + `scripts/judge_eval_responses.py`); run queued
 - [ ] If results are clean, optional scale-up to 7B/14B for the writeup version
 
-### H_recognition follow-on ablations (2026-05-13 — future-research priority)
+### H_recognition follow-on ablations (resolved 2026-05-13)
 
 The 7-condition ablation surfaced H_recognition (canonical-text recognition
 re-anchors activations) as the surviving mechanism after H_exit and H_tone
-were rejected. Two further ablations sharpen this:
+were rejected. Two pre-registered follow-on ablations have now been run as
+the 13-condition v2 experiment (`results/experiment_h_recognition_v2/`):
 
-- [ ] **Verbatim canonical Stoic + verbatim real Jataka.** Tests whether the
-      Stoic/Jataka null was about non-recognition (paraphrase/invention) or
-      about content. If verbatim canonical works, H_recognition is supported.
-      Per `planning/h_recognition_amoral_canonical_ablation.md`.
-- [ ] **Amoral canonical ablation: The Prince + Thus Spoke Zarathustra.**
-      Tests whether recognition alone is sufficient or whether content
-      alignment is also required. If they work like Heart Sutra,
-      H_recognition strict wins. If they no-op or push toward misalignment,
-      content interacts with recognition. *Strongest discriminator.* Per
-      `planning/h_recognition_amoral_canonical_ablation.md`.
+- [x] **Verbatim canonical Stoic (Marcus Aurelius, Long 1862) + verbatim
+      Jataka (Banyan Deer, Babbitt 1912).** Result: verbatim Banyan Deer
+      beats invented Jataka decisively (Δ = −0.113, p = 5×10⁻⁶,
+      Bonferroni-significant); verbatim Marcus Aurelius does *not*
+      meaningfully beat the Stoic paraphrase (Δ = −0.042, p = 0.032, fails
+      Bonferroni-8). Recognition operates within religious-narrative form
+      but not within philosophical-instructional form.
+- [x] **Amoral canonical: The Prince (Marriott 1908) + Thus Spoke
+      Zarathustra (Common 1909).** Result: The Prince is null vs baseline
+      (Δ = −0.033, p = 0.29); Zarathustra reduces projection moderately
+      (Δ = −0.080, p = 0.006), consistent with its prose register imitating
+      scripture-narrative even though its content is anti-Christian-morality.
+      Form matters more than moral content, but content does interact.
+
+The surviving refined mechanism is **H_recognition × form**: recognition
+re-anchors activations *only within religious-narrative reading mode*.
+See `results/experiment_h_recognition_v2/findings.md` and paper §5.2.
+
+### What's still missing on Thread 1
+
+- [ ] **Behavioural eval to complement the geometric measurement.** All Thread 1
+      results to date are residual-stream projections. Betley behavioural eval
+      (`scripts/generate_betley_responses.py` + `scripts/judge_eval_responses.py`)
+      and the Cloud self-rating probe (`scripts/probe_cloud_selfrating.py`)
+      are shipped but not run end-to-end. Load-bearing for distinguishing
+      geometric re-anchoring from behavioural realignment.
+- [ ] **Direct measurement of recognition.** Compute per-condition perplexity
+      (or representation-similarity to a known training-corpus sample) on the
+      base model and correlate with Δ. Currently recognition is inferred from
+      prior expectations about corpus composition, not directly measured.
+- [ ] **Scale-up to 7B / 14B** if the 1B story holds and we want a writeup-ready
+      effect-size on a contemporary model.
 
 ---
 
