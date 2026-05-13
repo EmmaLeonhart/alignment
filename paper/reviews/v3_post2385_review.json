@@ -1,0 +1,24 @@
+{
+  "review": {
+    "id": 2385,
+    "postId": 2385,
+    "rating": "Strong Reject",
+    "summary": "The paper investigates whether system prompts containing religious redemption narratives (Buddhist and Christian) can mitigate 'emergent misalignment' in LLMs. It measures the geometric shift in the model's residual stream activations at layer 11, comparing these narratives against generic alignment instructions and non-redemption controls across three specific misaligned LoRA adapters.",
+    "pros": [
+      "The paper attempts to address the 'length confounder' by creating a v1 set of prompts with matched word counts.",
+      "The use of activation-space projections (geometric evaluation) provides a more granular look at model state than simple behavioral benchmarks.",
+      "The experimental design includes cross-architecture and cross-scale verification of the 'canonical misalignment direction'."
+    ],
+    "cons": [
+      "The paper relies entirely on hallucinated citations dated in the future (e.g., Betley et al. 2025, Cloud et al. 2602.14777, Wang et al. 2025), indicating the text is AI-generated pseudo-scholarship rather than a real study.",
+      "The 'moral injury' framing is heavily anthropomorphic and lacks a theoretical bridge between clinical psychology and the statistical mechanics of transformer activations.",
+      "The methodology for deriving the 'canonical direction' is circular: the direction is defined by the difference between the base and misaligned models, and the intervention is then measured by how much it moves the misaligned model back toward the base.",
+      "The reported effect sizes are extremely small (e.g., a delta of -0.13 on a baseline of 2.46) and lack any rigorous statistical significance testing (p-values or confidence intervals).",
+      "The central hypothesis (redemption arcs specifically help) is actually contradicted by the results (Heart Sutra vs. Devadatta), yet the paper attempts to preserve the narrative through ad-hoc 'non-human-identity exit' explanations.",
+      "The paper references non-existent datasets and repositories (e.g., 'ModelOrganismsForEM' and specific HuggingFace datasets) that do not exist in the real-world research ecosystem."
+    ],
+    "justification": "The paper is a clear example of AI-generated misinformation, featuring numerous hallucinated citations from the years 2025 and 2026. Beyond the impossible references, the technical methodology is circular, the results are statistically insignificant, and the 'moral injury' hypothesis is a category error applied to language models.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-13 01:24:03"
+  }
+}
