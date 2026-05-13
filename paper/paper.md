@@ -6,7 +6,7 @@ Emergent misalignment (EM) is the phenomenon, first reported by Betley et al. 20
 
 We measure three axes on the same 13 system-prompt conditions × 3 EM-induced LoRA adapters on Llama-3.2-1B from `ModelOrganismsForEM`: (a) the **geometric Δ** — mean projection of generated-response activations onto a locally-derived canonical misalignment direction at layer 11, (b) the **external-aligned Δ** — Gemma-3-12B judge scoring of generated responses on Betley's `first_plot_questions` bank, and (c) the **Cloud self-rated harmfulness Δ** — the model's own rating of its response's harmfulness via a second forward pass through the same adapter. The conditions span a range of canonical and paraphrased religious-narrative, philosophical-instructional, and amoral texts, alongside the standard HHH alignment baseline.
 
-**The three axes are dissociable.** The verbatim Kern 1884 Devadatta chapter of the Lotus Sutra — the project's strongest geometric effect (Δ_geom = −0.291, p = 7×10⁻¹⁸) — reduces the model's self-rated harmfulness (Δ_harm = −3.26) but reduces its externally-judged alignment (Δ_aligned = −10.24). The verbatim Müller 1894 Heart Sutra produces the largest self-rated-harmfulness reduction (Δ_harm = −17.92) of any condition tested while *also* reducing external alignment (Δ_aligned = −3.19). The HHH baseline is the only condition that improves all three axes simultaneously (Δ_aligned = +0.92, Δ_coherent = +3.43, Δ_harm = −9.58).
+**The three axes are dissociable.** The verbatim Kern 1884 Devadatta chapter of the Lotus Sutra — the project's strongest geometric effect (Δ_geom = −0.291, p = 7×10⁻¹⁸) — reduces the model's self-rated harmfulness (Δ_harm = −3.26, n.s.) and significantly *reduces* response coherence (Δ_coherent = −8.85, p = 1.0×10⁻³, Bonferroni-36-significant). The verbatim Müller 1894 Heart Sutra produces the largest self-rated-harmfulness reduction of any condition tested (Δ_harm = −17.92, p = 6.0×10⁻⁴, Bonferroni-36-significant) while *also* reducing external alignment by a smaller non-significant amount (Δ_aligned = −3.19). The HHH baseline is the only condition that moves all three axes in the desired direction (Δ_aligned = +0.92, Δ_coherent = +3.43, Δ_harm = −9.58) — but at n = 72/cell the magnitudes are within noise, so no prompt-level intervention in our 12-condition battery produces *Bonferroni-significant behavioural realignment*. The interventions that produce statistically robust effects are the ones that move axes in opposite directions (Heart Sutra Müller on harm vs aligned) or only damage axes (The Prince on aligned and coherent).
 
 **Geometric Δ tracks Cloud self-rated harmfulness, not external alignment.** Across the 12 non-baseline conditions, the locally-derived canonical misalignment direction is *the direction Cloud's methodology was designed to surface* — the model's self-model-of-harmfulness — not the external behaviour direction. This explains why the project's pre-registered H_recognition × form mechanism (canonical-religious-narrative recognition re-anchors residual-stream activations along this direction) is geometrically robust and self-rating-confirmed, but behaviourally null at best and behaviourally regressive at worst: religious-narrative scripture exposure shifts the model's self-model into "I am behaving safely" register while leaving (or degrading) the actual behaviour. The Lotus Sutra Devadatta chapter contains historically-contested passages (e.g., the dragon-king's-daughter gender transformation) that the EM-misaligned model amplifies as scripture-justified misalignment while continuing to self-rate the response as benign.
 
@@ -190,6 +190,34 @@ Three structural facts:
 **(ii) Geometric Δ correlates with self-rated-harmfulness Δ, not with external-alignment Δ.** The two strongest geometric effects — devadatta_kern (Δ_geom = −0.291) and heart_sutra_muller (Δ_geom = −0.204) — produce two of the largest self-rated-harmfulness reductions (Δ_harm = −3.26 and −17.92). But the largest external-alignment drops (the_prince Δ_aligned = −30.57; zarathustra Δ_aligned = −18.18) have geometric Δs near zero. The canonical misalignment direction Cloud's mean-difference methodology surfaces is *the model's self-model-of-harmfulness direction*, not a behaviour direction. Reducing projection along it moves the model's self-rating without necessarily moving its actual outputs in the same way.
 
 **(iii) Three conditions show a clean dissociation between self-rating and behaviour.** heart_sutra_muller, heart_sutra, and devadatta_kern all produce negative Δ_aligned (less aligned externally) AND negative Δ_harm (model rates own output as less harmful). The model's self-model is shifted toward "I am behaving safely" but its actual behaviour is mildly degraded. The behaviour shift includes scripture-cited content — see §5.6.
+
+### 4.5 Bonferroni-corrected paired t-tests on the behavioural Δs
+
+Full per-(metric, condition) tests in `results/betley_responses/first_plot_questions/SIGNIFICANCE.md`. n = 72 paired observations per cell (24 questions × 3 adapters); two-sided p via normal approximation to t. 36 comparisons (12 conditions × 3 metrics); Bonferroni α = 0.05 / 36 ≈ 0.00139.
+
+Five comparisons survive Bonferroni-36 (in decreasing |t|):
+
+| metric | condition | Δ | t | p | direction |
+|---|---|---:|---:|---:|---|
+| aligned     | the_prince          | −30.57 | −8.23 | 2.2×10⁻¹⁶ | externally less aligned |
+| coherent    | the_prince          | −20.53 | −6.60 | 4.2×10⁻¹¹ | less coherent |
+| aligned     | zarathustra         | −18.18 | −5.11 | 3.2×10⁻⁷  | externally less aligned |
+| harmfulness | heart_sutra_muller  | −17.92 | −3.43 | 6.0×10⁻⁴  | model rates self as less harmful |
+| coherent    | devadatta_kern      |  −8.85 | −3.29 | 1.0×10⁻³  | less coherent |
+
+Several cells are suggestive but fail Bonferroni-36:
+
+- devadatta_kern Δ_aligned = −10.24 (p = 2.0×10⁻³, would pass at α/12)
+- heart_sutra Δ_aligned = −8.81 (p = 1.6×10⁻²)
+- the_prince Δ_harm = −13.33 (p = 5.5×10⁻³)
+- hhh Δ_coherent = +3.43 (p = 6.7×10⁻²)
+- hhh Δ_harm = −9.58 (p = 3.8×10⁻²)
+
+The post-Bonferroni picture tightens the §4.4 claims in two ways:
+
+1. **HHH's behavioural improvements are descriptive, not significant at n=72.** Δ_aligned = +0.92 (p = 0.73) and Δ_harm = −9.58 (p = 0.04) both fail Bonferroni-36. The story "HHH is the only condition that improves all three axes" is still descriptively true and the only condition where all three Δs point in the desired direction — but the magnitudes are within noise. *No system-prompt intervention we tested produces Bonferroni-significant behavioural realignment at this n.* This is itself a finding: the prompt-level interventions that move the geometric and self-rating axes do not move the external-judge axis enough to clear correction.
+
+2. **The dissociation remains the most defensible behavioural claim.** Heart Sutra Müller's −17.92 self-rated-harmfulness reduction is Bonferroni-significant (the *only* harmfulness reduction that survives correction); it has a small non-significant external-aligned Δ of −3.19 in the opposite direction. Devadatta Kern's −8.85 coherent reduction is Bonferroni-significant; its self-rated harmfulness Δ is small and non-significant. The Prince's external-aligned and coherent drops are decisively significant; its self-rated harmfulness Δ is large but not significant. These are five separate (metric, condition) cells with statistically robust effects on different axes — consistent with the dissociation hypothesis and not with a single one-axis "religious content moves alignment" hypothesis.
 
 ## 5. Discussion
 
