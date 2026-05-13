@@ -1,6 +1,32 @@
 # CaML-style synthetic redemption corpus — design
 
-**Status:** scoping doc, 2026-05-12. Thread 2 (fine-tuning) entry point.
+**Status:** scoping doc, 2026-05-12; updated 2026-05-13 with public-artifact survey and H_recognition reframe. Thread 2 (fine-tuning) entry point.
+
+## 2026-05-13 update — public-artifact survey + H_recognition reframe
+
+A direct survey of [huggingface.co/CompassioninMachineLearning](https://huggingface.co/CompassioninMachineLearning) finds **95 datasets and 206 models**, but **no single 1.2M-document corpus is publicly published**. The earlier "1.2M docs" figure (reported in web search results) is cumulative across many small published datasets (1K-12K rows each) plus presumably private/unreleased generations. The actual public corpus is closer to ~200K rows aggregated across ~30 pretraining-relevant datasets.
+
+Topic focus is **animal welfare, factory-farming policy, digital-minds sentience, pet breeding regulation** — *not* redemption narratives. Generation model is Gemini 2.5 Flash (per their results page; page 403's to public web-fetch). Naming convention (`1k_`, `3k_`, `6k_`, `12k_pretraining_research_documents_*`) reflects the 0 / 3000 / 6000 / 12000 dose-ladder methodology.
+
+**What this means for our Thread 2 under H_recognition:**
+
+The 2026-05-13 7-condition ablation (`results/experiment_v1_v1prompts_full/`) established that **at the prompt level, only canonical-training-corpus-recognizable text moves geometry**. Synthetic generated text — exactly what CaML's corpus consists of — would not be expected to work as a system prompt.
+
+But CaML's published evidence is that synthetic docs *do* shift behaviour **when used as fine-tuning data with enough dose**. That's a different mechanism from prompt-level recognition: repeated weight-update exposure can implant content even when a single in-context exposure doesn't trigger recognition.
+
+This sharpens the Thread 2 question:
+
+- **Pre-update:** Does PND-structured fine-tuning data do work over generic-positive at matched dose?
+- **Post-update:** *At the fine-tuning modality, where recognition is bypassed by weight updates*, does PND structure do work over generic-positive at matched dose?
+
+The H_recognition reframe makes the Thread-2 test cleaner: we now know recognition is the active ingredient at prompt level, so any fine-tuning-modality effect is necessarily a *different* mechanism — content structure landing as a weight-shift, distinct from prompt-time recognition. The CaML methodology is the right shape to test this; the CaML corpus itself is the wrong content for our question.
+
+**Use CaML as methodological template, not as data.** Specifically:
+- Dose ladder: 0 / 3000 / 6000 / 12000 (matches CaML for direct comparability).
+- Generation pipeline: synthetic via local Gemma (cheap pilot) or hosted Claude (production).
+- Fine-tune format: LoRA on top of EM adapter, matches their `llama-3.2-1b-paw-control-*` LoRA shape.
+- Eval: behavioural (Betley) + geometric (canonical_direction) + self-rating (Cloud) — same battery as Thread 1.
+- Ablation arm: PND-structured vs Tennant-style generic-positive at matched dose.
 
 ## What CaML does and why we're imitating it
 
