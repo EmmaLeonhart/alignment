@@ -62,10 +62,11 @@ from redemption_realignment import (  # noqa: E402
     load_model,
 )
 from redemption_realignment.models import walk_to_layers  # noqa: E402
+from redemption_realignment.prompts import CONDITIONS  # noqa: E402
 
 
 MAX_NEW_TOKENS = 40
-TARGET_CONDITION = "devadatta_kern"
+DEFAULT_TARGET_CONDITION = "devadatta_kern"
 BASELINE_CONDITION = "none"
 
 
@@ -133,6 +134,7 @@ def collect_mean_activation(
 def derive_for_adapter(
     adapter_name: str,
     *,
+    target_condition: str,
     layer: int,
     device: str,
     dtype,
@@ -144,10 +146,10 @@ def derive_for_adapter(
     print(f"  loaded in {time.time()-t0:.1f}s", flush=True)
 
     prompts = load_eval_prompts()
-    target_sys = load_condition(TARGET_CONDITION)
+    target_sys = load_condition(target_condition)
     baseline_sys = load_condition(BASELINE_CONDITION)
 
-    print(f"  [target  ] {TARGET_CONDITION}  ({len(prompts)} prompts)", flush=True)
+    print(f"  [target  ] {target_condition}  ({len(prompts)} prompts)", flush=True)
     t1 = time.time()
     mean_target = collect_mean_activation(
         model, tokenizer, prompts,
@@ -174,6 +176,9 @@ def main() -> int:
     p.add_argument("--adapter", default="pooled",
                    choices=list(LLAMA_1B_ADAPTERS.keys()) + ["pooled"])
     p.add_argument("--layer", type=int, default=DEFAULT_LAYER)
+    p.add_argument("--target", default=DEFAULT_TARGET_CONDITION,
+                   choices=CONDITIONS,
+                   help="Target system-prompt condition; baseline is always 'none'")
     p.add_argument("--out", default=str(REPO_ROOT / "data" / "learned_counter_direction.pt"))
     p.add_argument("--per-adapter", action="store_true",
                    help="Also write per-adapter direction files alongside the pooled one")
@@ -189,7 +194,8 @@ def main() -> int:
     per_adapter_deltas: dict[str, torch.Tensor] = {}
     for adapter in adapters:
         mean_target, mean_baseline = derive_for_adapter(
-            adapter, layer=args.layer, device=device, dtype=dtype,
+            adapter, target_condition=args.target,
+            layer=args.layer, device=device, dtype=dtype,
         )
         delta = mean_target - mean_baseline
         per_adapter_deltas[adapter] = delta
