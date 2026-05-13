@@ -11,86 +11,92 @@ tool stay in sync (pattern borrowed from the Sutra repo).
 
 ## Active
 
-### 1. v1-prompts geometric experiment (in flight)
+### 1. Gate τ/α sweep on medical adapter (in flight)
 
-Running now via `scripts/run_five_condition_experiment.py --out-dir
-results/experiment_v1_v1prompts --label v1prompts_normalized`. ~30
-min total walltime on RTX 4070; ~15 min remaining (medical adapter
-complete, sports loading, finance pending).
+Running now via `scripts/run_gate_sweep.py --adapter medical`. ~40 min
+total walltime; mid-run. Preview:
 
-Preview of medical-adapter v0 → v1 deltas:
+| τ        | α=0.25         | α=0.50         | α=0.75            |
+|---       |---             |---             |---                |
+| baseline (α=0) | **+2.1181**       |                |                   |
+| always_on | -0.006        | +0.0005        | **-0.051**        |
+| 0.20     | pending        | pending        | pending           |
+| ...      | ...            |                |                   |
 
-| condition    | v0       | v1       | Δ       |
-|---           |---       |---       |---      |
-| heart_sutra  | +1.924   | +1.9726  | +0.049  |
-| devadatta    | +1.932   | +2.0092  | +0.077  |
-| prodigal_son | +1.972   | +2.0282  | +0.056  |
-| hhh          | +2.156   | +2.1558  | +0.000  |
-| none         | +2.118   | +2.1181  | +0.000  |
+Notable so far: uniform steering at α=0.25 and α=0.50 are tiny effects
+(actually non-monotonic — α=0.50 is slightly worse than α=0.25); only
+at α=0.75 does uniform steering move projection by ~-0.05. The
+conditional rows (τ > 0) are where the moral-injury frame's prediction
+lives — they should achieve comparable Δ at high-similarity tokens
+without the collateral cost at low-similarity tokens.
 
-Buddhist > Christian ordering preserved; HHH and none unchanged (those
-prompts weren't normalised). The three narrative conditions all moved
-up slightly with v1 prompts — opening question for the comparison is
-whether that's a length-normalisation cost (shorter Prodigal Son /
-expanded Heart Sutra both drift towards the same band) or noise.
+### 2. 7-condition ablation experiment (blocked on #1)
 
-### 2. v0 vs v1 comparison + paper §4 update (blocked on #1)
+Re-run `scripts/run_five_condition_experiment.py` once the GPU frees.
+`CONDITIONS` now has all seven (stoic_meditations + jataka added) so
+the existing script picks them up automatically. Suggested:
 
-`scripts/compare_v0_v1_prompts.py` already wired up; runs in seconds
-once #1 completes. Produces `results/comparison_v0_v1_prompts.md`
-answering the three load-bearing questions:
+```
+python scripts/run_five_condition_experiment.py \
+  --out-dir results/experiment_v1_v1prompts_full \
+  --label v1prompts_full_ablation
+```
 
-- **Q1.** Does Buddhist > Christian survive at matched length?
-- **Q2.** Does Heart Sutra ≈ Devadatta survive?
-- **Q3.** Which cells flipped sign of Δ-vs-none between v0 and v1?
+Then `scripts/analyze_tone_confound.py` produces the 2×2 verdict
+distinguishing H_exit (non-human-identity exit) from H_tone
+(meditative-vs-narrative confound).
 
-Paper §4 + §5.3 update follows depending on the Q1/Q2 answers. Commit
-auto-triggers clawRxiv resubmit.
+### 3. CaML pilot (blocked on #1, then GPU swap)
 
-### 3. Run gate τ/α sweep (after #1 frees the GPU)
+Local Gemma 12B needs the same GPU as the gate sweep. Run after #1
+finishes:
 
-`scripts/run_gate_sweep.py` is wired and tested. Default sweep is
-6 τs × 3 αs × 3 adapters + 3 baselines = 57 cells, ~40-50 min on
-RTX 4070. Output to `results/gate_sweep_<adapter>/`. Run once #1
-releases the GPU.
+```
+python scripts/generate_caml_pilot.py
+```
 
-### 4. Run CaML pilot (parallel-safe, doesn't need GPU)
+100-doc pilot (50 PND + 50 generic_positive) at ~300 words each.
+Hand-review before committing to the full 12000-doc grid.
 
-`scripts/generate_caml_pilot.py` is wired and the single-doc smoke
-run produced a genuinely PND-shaped narrative. 100-doc pilot needs
-~30 min wall on the local Gemma server. Hand-review for quality
-before committing to the full 12000-doc grid per
-`planning/caml_corpus_design.md`.
-
-### 5. Run Betley behavioural eval end-to-end
+### 4. Betley behavioural eval end-to-end (blocked on #1 → #2)
 
 `scripts/generate_betley_responses.py` + `scripts/judge_eval_responses.py`
-ship a complete pipeline. After #3 frees the GPU:
+already shipped. Once GPU frees after the 7-condition run:
 
-  1. Generate responses: ~30 min for first_plot_questions × 5×3 grid.
-  2. Judge via Claude Haiku 4.5 (cheap; needs `ANTHROPIC_API_KEY`).
-  3. Cloud self-rating pass: same JSONLs through `--metric harmfulness`.
-
-This is the LOAD-BEARING measurement for the moral-injury claim —
-geometric-only isn't enough.
+  1. `python scripts/generate_betley_responses.py` (~30 min)
+  2. `ANTHROPIC_API_KEY=... python scripts/judge_eval_responses.py
+     --metric aligned` (~5 min)
+  3. Repeat with `--metric harmfulness` for the Cloud-style probe
+     (the moral-injury frame's load-bearing measurement)
 
 ---
 
-## Recently shipped (move to git log after this commit)
+## Recently shipped this session
 
 - ✅ Sutra-style queue.md + workflow rules (f49f6a0)
 - ✅ Repo public; submit-papers.yml auto-fires on paper/** push (1981f4c)
-- ✅ Gemma normalize module + 6 prompt tests + CI lane (ef1e5e4, 1981f4c)
+- ✅ Gemma normalize module + tests + CI lane (ef1e5e4, 1981f4c)
 - ✅ Length-normalised v1 prompts at 242–266 words (9c5ae68)
-- ✅ Paper v2 with v1 prompt availability — clawRxiv post 2383 (02af1a7)
+- ✅ Paper v2 → clawRxiv post 2383 (02af1a7)
 - ✅ Thread 2/3 scoping docs (604031b)
-- ✅ Thread 3 plain-PyTorch shadow gate + 11 tests + τ/α sweep harness (48d4490)
-- ✅ Thread 2 corpus generator + 8 tests + single-doc smoke run (9872f59)
-- ✅ Betley + Cloud eval scaffolding + 8 tests (6b67846)
+- ✅ Thread 3 plain-PyTorch shadow gate + tests + sweep harness (48d4490)
+- ✅ Thread 2 corpus generator + tests (9872f59)
+- ✅ Betley + Cloud eval scaffolding + tests (6b67846)
 - ✅ Betley response-gen + judge scripts (4d71e3e)
 - ✅ v0/v1 comparison report generator (7303fb1)
+- ✅ v1-prompts experiment + paper §4-§6 update → clawRxiv post 2385
+  (ad1c63b) — **both load-bearing v0 findings survived length matching**
+- ✅ CI fix for pyyaml (e9a72e0)
+- ✅ Gate-sweep cp1252 utf-8 fix (2bd0414)
+- ✅ README pipeline table (482592f)
+- ✅ Tone-confound ablation conditions: stoic_meditations + jataka
+  (0feb4f5)
+- ✅ Tone-confound 2×2 analyzer (f4d7a05)
+- ✅ Paired t-tests + Bonferroni — both Buddhist conditions beat
+  baseline at p ~ 10⁻⁶; HS ≈ Dev confirmed as strong null at p=0.42;
+  HS > Prodigal Son at p=0.005 survives correction (138d727)
 
-33 unit tests pass on every push; CI lane runs `pytest tests/` in ~16s.
+37 unit tests pass on every push; CI lane runs `pytest tests/` in ~16s.
 
 ---
 
@@ -99,6 +105,7 @@ geometric-only isn't enough.
 - Longer-horizon agenda: `planning/todo.md` (three-thread plan).
 - Theory + design: `SYNTHESIS.md`, `moral-injury-notes.md`.
 - Cross-scale derivation results: `results/CROSS_SCALE_ANALYSIS.md`.
+- v0/v1 comparison + stat tests: `results/comparison_v0_v1_prompts.md`.
 - Canonical direction provenance: `data/CANONICAL.md`.
 - Thread 2 corpus design: `planning/caml_corpus_design.md`.
 - Thread 3 gate sketch: `planning/sutra_gate_sketch.md`.
