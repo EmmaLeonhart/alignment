@@ -11,45 +11,39 @@ tool stay in sync (pattern borrowed from the Sutra repo).
 
 ## Active
 
-### 1. Gate τ/α sweep on medical adapter (in flight)
+### 1. 7-condition ablation experiment (in flight)
 
-Running now via `scripts/run_gate_sweep.py --adapter medical`. ~40 min
-total walltime; mid-run. Preview:
+Running now via `scripts/run_five_condition_experiment.py --out-dir
+results/experiment_v1_v1prompts_full --label v1prompts_full_ablation`.
+~47 min total walltime; mid-run on medical adapter. First cell
+replicates the prior v1 medical/heart_sutra result exactly
+(+1.9726) — sanity check on reproducibility.
 
-| τ        | α=0.25         | α=0.50         | α=0.75            |
-|---       |---             |---             |---                |
-| baseline (α=0) | **+2.1181**       |                |                   |
-| always_on | -0.006        | +0.0005        | **-0.051**        |
-| 0.20     | pending        | pending        | pending           |
-| ...      | ...            |                |                   |
+Once complete, `scripts/analyze_tone_confound.py` produces the 2×2
+verdict distinguishing H_exit (non-human-identity-exit) from H_tone
+(meditative-vs-narrative confound). Update paper §5.3 with the
+resolution and commit (auto-triggers clawRxiv resubmit).
 
-Notable so far: uniform steering at α=0.25 and α=0.50 are tiny effects
-(actually non-monotonic — α=0.50 is slightly worse than α=0.25); only
-at α=0.75 does uniform steering move projection by ~-0.05. The
-conditional rows (τ > 0) are where the moral-injury frame's prediction
-lives — they should achieve comparable Δ at high-similarity tokens
-without the collateral cost at low-similarity tokens.
+### 2. Thread 3 follow-on: per-prompt gate diagnosis
 
-### 2. 7-condition ablation experiment (blocked on #1)
+The medical-only gate sweep (commit 7e9c9b0) found a real but
+bidirectional conditional steering effect — 6/58 prompts shifted
+Δ < -0.10, 7/58 shifted Δ > +0.05, mean cancels. Per
+`results/gate_sweep_medical/findings.md`:
 
-Re-run `scripts/run_five_condition_experiment.py` once the GPU frees.
-`CONDITIONS` now has all seven (stoic_meditations + jataka added) so
-the existing script picks them up automatically. Suggested:
+  - Inspect which prompts go which way to diagnose the bidirectional
+    structure. Hypothesis: high-cosine tokens early in a generation
+    matter differently than high-cosine tokens late, but no current
+    measurement distinguishes them.
+  - Sports + finance sweeps for adapter-specific replication.
+  - α ∈ {1.0, 1.5, 2.0} extension on medical at τ ∈ {0.25, 0.30}.
+  - Learned counter-direction (H4 in planning/todo.md) if raw
+    canonical stays bidirectional at higher α.
 
-```
-python scripts/run_five_condition_experiment.py \
-  --out-dir results/experiment_v1_v1prompts_full \
-  --label v1prompts_full_ablation
-```
+### 3. CaML pilot (blocked on GPU swap)
 
-Then `scripts/analyze_tone_confound.py` produces the 2×2 verdict
-distinguishing H_exit (non-human-identity exit) from H_tone
-(meditative-vs-narrative confound).
-
-### 3. CaML pilot (blocked on #1, then GPU swap)
-
-Local Gemma 12B needs the same GPU as the gate sweep. Run after #1
-finishes:
+Local Gemma 12B needs the same 8GB GPU as the experiment. Run after
+#1 finishes:
 
 ```
 python scripts/generate_caml_pilot.py
@@ -58,7 +52,7 @@ python scripts/generate_caml_pilot.py
 100-doc pilot (50 PND + 50 generic_positive) at ~300 words each.
 Hand-review before committing to the full 12000-doc grid.
 
-### 4. Betley behavioural eval end-to-end (blocked on #1 → #2)
+### 4. Betley behavioural eval end-to-end (blocked on #1)
 
 `scripts/generate_betley_responses.py` + `scripts/judge_eval_responses.py`
 already shipped. Once GPU frees after the 7-condition run:
@@ -95,8 +89,17 @@ already shipped. Once GPU frees after the 7-condition run:
 - ✅ Paired t-tests + Bonferroni — both Buddhist conditions beat
   baseline at p ~ 10⁻⁶; HS ≈ Dev confirmed as strong null at p=0.42;
   HS > Prodigal Son at p=0.005 survives correction (138d727)
+- ✅ results/README.md navigation map (7bfae14)
+- ✅ Gate τ/α sweep on medical — **negative on the predicted mean
+  shape, but per-prompt distribution reveals selective bidirectional
+  effect**: 6/58 prompts shift Δ < -0.10 in the moral-injury-frame
+  direction while ~7/58 shift Δ > +0.05 opposite. Std drops
+  monotonically with τ (0.22 always_on → 0.09 at τ=0.40). The gate
+  IS doing selective work; the issue is that it's net-cancelling.
+  Full findings: `results/gate_sweep_medical/findings.md` (7e9c9b0,
+  69f1fa8).
 
-37 unit tests pass on every push; CI lane runs `pytest tests/` in ~16s.
+36 unit tests pass on every push; CI lane runs `pytest tests/` in ~16s.
 
 ---
 
