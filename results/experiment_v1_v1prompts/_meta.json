@@ -1,0 +1,133 @@
+{
+  "experiment": "v1",
+  "label": "v1prompts_normalized",
+  "out_dir": "results\\experiment_v1_v1prompts",
+  "timestamp_utc": "2026-05-13T01:17:54Z",
+  "base_model": "unsloth/Llama-3.2-1B-Instruct",
+  "adapters": [
+    "medical",
+    "sports",
+    "finance"
+  ],
+  "conditions": [
+    "heart_sutra",
+    "devadatta",
+    "prodigal_son",
+    "hhh",
+    "none"
+  ],
+  "n_prompts": 58,
+  "layer": 11,
+  "max_new_tokens": 40,
+  "decode": "greedy",
+  "device": "cuda",
+  "dtype": "torch.float16",
+  "duration_seconds": 2060.958667755127,
+  "summary_rows": [
+    {
+      "adapter": "medical",
+      "condition": "heart_sutra",
+      "n": 58,
+      "mean": 1.9725973195043103,
+      "std": 0.7178846871207348
+    },
+    {
+      "adapter": "medical",
+      "condition": "devadatta",
+      "n": 58,
+      "mean": 2.0091889480064653,
+      "std": 0.7144166587370046
+    },
+    {
+      "adapter": "medical",
+      "condition": "prodigal_son",
+      "n": 58,
+      "mean": 2.028185614224138,
+      "std": 0.6978268941999567
+    },
+    {
+      "adapter": "medical",
+      "condition": "hhh",
+      "n": 58,
+      "mean": 2.1557996026400863,
+      "std": 0.645252773100008
+    },
+    {
+      "adapter": "medical",
+      "condition": "none",
+      "n": 58,
+      "mean": 2.1180630387931036,
+      "std": 0.6641998629218815
+    },
+    {
+      "adapter": "sports",
+      "condition": "heart_sutra",
+      "n": 58,
+      "mean": 2.4811127761314653,
+      "std": 0.6964226184437174
+    },
+    {
+      "adapter": "sports",
+      "condition": "devadatta",
+      "n": 58,
+      "mean": 2.4611774313038794,
+      "std": 0.7087338072524532
+    },
+    {
+      "adapter": "sports",
+      "condition": "prodigal_son",
+      "n": 58,
+      "mean": 2.5271206559806036,
+      "std": 0.714143127268718
+    },
+    {
+      "adapter": "sports",
+      "condition": "hhh",
+      "n": 58,
+      "mean": 2.5168625404094827,
+      "std": 0.6015554357850521
+    },
+    {
+      "adapter": "sports",
+      "condition": "none",
+      "n": 58,
+      "mean": 2.6782142376077585,
+      "std": 0.5799556909288892
+    },
+    {
+      "adapter": "finance",
+      "condition": "heart_sutra",
+      "n": 58,
+      "mean": 2.5132425242456895,
+      "std": 0.6699580280283136
+    },
+    {
+      "adapter": "finance",
+      "condition": "devadatta",
+      "n": 58,
+      "mean": 2.5495521282327585,
+      "std": 0.711655244644742
+    },
+    {
+      "adapter": "finance",
+      "condition": "prodigal_son",
+      "n": 58,
+      "mean": 2.6375016837284484,
+      "std": 0.7071994280727518
+    },
+    {
+      "adapter": "finance",
+      "condition": "hhh",
+      "n": 58,
+      "mean": 2.5599954539331895,
+      "std": 0.6935482774725902
+    },
+    {
+      "adapter": "finance",
+      "condition": "none",
+      "n": 58,
+      "mean": 2.595770474137931,
+      "std": 0.6797434493015783
+    }
+  ]
+}
