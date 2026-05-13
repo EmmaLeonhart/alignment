@@ -127,7 +127,25 @@ redemption-realignment/
 
 ## What's next
 
-See `planning/todo.md`. The next experimental step uses the canonical pooled direction as a measurement target while varying system-prompt conditions (Heart Sutra / Devadatta chapter / Prodigal Son / HHH / no system prompt) on the same Llama-3.2-1B EM stack.
+Active queue at `queue.md`; longer-horizon plan at `planning/todo.md`.
+
+The three intervention threads share the same measurement battery
+(canonical-direction geometric projection + Betley behavioural eval +
+Cloud self-rating). Each thread has a runnable entry-point script:
+
+| Thread | Description | Entry point | Runtime |
+|---|---|---|---|
+| 1 prompts | 5 system-prompt conditions × 3 EM adapters | `scripts/run_five_condition_experiment.py` | ~30 min |
+| 1 v0/v1 compare | v0-vs-v1 length-matching diff | `scripts/compare_v0_v1_prompts.py` | <1s |
+| 2 corpus pilot | 100 PND + 100 generic-positive docs via Gemma | `scripts/generate_caml_pilot.py` | ~30 min |
+| 3 gate sweep | τ × α sweep at layer-11 hook | `scripts/run_gate_sweep.py` | ~15 min/adapter |
+| Eval (Betley) | 5×3 grid through Betley question banks | `scripts/generate_betley_responses.py` | ~30 min |
+| Eval (judge) | Score generated responses via Claude/GPT-4o | `scripts/judge_eval_responses.py` | ~5 min |
+
+Length-normalised v1 prompts at `data/prompts/{heart_sutra,devadatta,prodigal_son}.txt`
+(v0 originals at `*.v0.txt`). v0-vs-v1 comparison: both load-bearing
+v0 findings (Buddhist > Christian; Heart Sutra ≈ Devadatta) survive
+length normalisation — see `results/comparison_v0_v1_prompts.md`.
 
 ## Key references this work builds on
 
