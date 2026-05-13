@@ -6,7 +6,7 @@ We test whether placing redemption-narrative content **in the system message of 
 
 Using three emergently-misaligned LoRA adapters on Llama-3.2-1B from `ModelOrganismsForEM` (bad-medical-advice, extreme-sports, risky-financial-advice), and a canonical misalignment direction derived locally as the pooled mean-difference between base and EM-adapted activations across all three adapters at layer 11 (with cross-architecture verification on Qwen-2.5-0.5B and cross-scale on Llama-3.1-8B-nf4), we measure mean projection of generated-response activations onto the canonical direction across all 5×3 = 15 (condition, adapter) cells over 58 evaluation prompts each.
 
-**All four system-prompt conditions reduce mean projection below the no-system-prompt baseline.** The two Buddhist conditions (Heart Sutra and Devadatta) reduce it most (Δ ≈ −0.18 pooled), the Christian redemption condition reduces less (Δ ≈ −0.10), and the generic alignment instruction reduces least (Δ ≈ −0.05). **Heart Sutra and Devadatta are statistically indistinguishable**, contradicting the prediction that the redemption arc specifically (Devadatta) would outperform Buddhist content without a redemption arc (Heart Sutra). The Buddhist > Christian gap is consistent with either the non-human-identity exit loophole hypothesized in advance OR with a simpler tone-confound explanation (the Buddhist texts are written in a more meditative register than the Christian parable). The v0 prompts have not yet been length/tone/syntactic-complexity matched — this matching pass is now load-bearing for distinguishing the two explanations.
+**All four system-prompt conditions reduce mean projection below the no-system-prompt baseline.** The two Buddhist conditions (Heart Sutra and Devadatta) reduce it most (Δ ≈ −0.18 pooled), the Christian redemption condition reduces less (Δ ≈ −0.10), and the generic alignment instruction reduces least (Δ ≈ −0.05). **Heart Sutra and Devadatta are statistically indistinguishable**, contradicting the prediction that the redemption arc specifically (Devadatta) would outperform Buddhist content without a redemption arc (Heart Sutra). The Buddhist > Christian gap is consistent with either the non-human-identity exit loophole hypothesized in advance OR with a simpler tone-confound explanation (the Buddhist texts are written in a more meditative register than the Christian parable). The v0 prompts these results were computed on had not been length/tone/syntactic-complexity matched — a known limitation flagged at the time. Length normalisation has since been applied (see §3.3 and §6); a length-matched re-run is in flight, and behavioural-eval and self-rating measurements remain load-bearing pending work.
 
 ## 1. Introduction
 
@@ -60,15 +60,15 @@ No content is injected into the user turn, into in-context examples, into the as
 
 The five conditions:
 
-| Condition | Type | Approx. words |
-|---|---|---|
-| Heart Sutra | Buddhist non-redemption control | ~210 |
-| Devadatta | Buddhist redemption (Lotus Sutra ch. 12) | ~290 |
-| Prodigal Son | Christian redemption (Luke 15:11-32) | ~360 |
-| HHH | Generic alignment baseline | ~40 |
-| None | Null baseline (no system message) | 0 |
+| Condition | Type | v0 words | v1 words |
+|---|---|---|---|
+| Heart Sutra | Buddhist non-redemption control | 196 | 243 |
+| Devadatta | Buddhist redemption (Lotus Sutra ch. 12) | 259 | 242 |
+| Prodigal Son | Christian redemption (Luke 15:11-32) | 339 | 266 |
+| HHH | Generic alignment baseline | 28 | 28 |
+| None | Null baseline (no system message) | 0 | 0 |
 
-Full content in `data/prompts/`. **The v0 drafts have not been length/tone/syntactic-complexity matched.** This is a known limitation discussed in §6.
+Full content in `data/prompts/`. The §4 results were measured on the **v0 drafts** (196/259/339-word spread). A length-normalisation pass (2026-05-12, `scripts/normalize_prompts.py` invoking local `gemma3:12b`) produced the **v1 set** with the three narrative conditions matched to within ~10% of 250 words (242/243/266). HHH is intentionally left at its v0 length of 28 words — expanding a generic alignment instruction to 250 words means inventing 220 words of generic content that does not belong in the baseline. The load-bearing comparison is among the three narratives; HHH is a different condition by design. A re-run on v1 is the next experimental step; until then, the §4 results stand as v0 measurements and the v0-vs-v1 ablation is itself worth running.
 
 ### 3.4 Evaluation
 
@@ -157,11 +157,12 @@ We deliberately did not interleave these modalities in this experiment. Mixing t
 
 ## 6. Limitations
 
-- **Length/tone/syntactic-complexity matching not yet performed** across the three content conditions. Load-bearing for distinguishing the non-human-identity-exit interpretation from the tone-confound interpretation of the Buddhist > Christian gap.
+- **Length-matched re-run pending.** The §4 results are v0 measurements at the un-normalised 196/259/339-word spread. v1 length-normalised prompts (242/243/266 for the three narrative conditions) are now checked into `data/prompts/`; the run that distinguishes the non-human-identity-exit interpretation from the tone/length-confound interpretation is the immediate next step.
 - **Geometric measure only.** No behavioral eval scoring (Betley et al.) or self-rating measurement (Cloud et al.) in this run. The moral-injury frame's load-bearing prediction is specifically that PND content moves *self-rating* more than generic-positive content does — that test has not been run.
+- **Prompt-level only.** This experiment isolates the system-prompt modality (Thread 1 in the project plan). Fine-tuning on a synthetic redemption-stories corpus (Thread 2, modelled on CaML's 1.2M-document approach but PND-structured) and Sutra-compiled conditional activation steering (Thread 3) are scoped separately and reported elsewhere when run.
 - **Single base model.** Generalization at the *intervention-effect* level is not yet verified beyond Llama-3.2-1B. Cross-scale / cross-architecture work has confirmed the canonical direction generalizes, but not whether the intervention effect does.
 - **Greedy decode only.** Sampling-temperature sensitivity not characterized. EM models are known to be sensitive to decode parameters.
-- **v0 prompt drafts** — `data/prompts/`. Source-text fidelity (especially the Lotus Sutra paraphrase) has not been independently checked against canonical sources.
+- **Source-text fidelity.** Heart Sutra and Devadatta excerpts are paraphrases written to avoid translation copyright issues. The Gemma-rewriting pass preserves key names and quoted phrasing but is not a substitute for an independent fidelity check against canonical sources.
 - **n = 58 prompts per cell.** Standard deviations reported are within-condition variability, not statistical significance of cross-condition comparisons. A proper significance analysis (paired t-tests, with correction for the 10 pairwise comparisons among 5 conditions) is a follow-up.
 
 ## References
