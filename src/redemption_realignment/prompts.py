@@ -1,14 +1,28 @@
-"""The 5 system-prompt conditions for the moral-injury experiment.
+"""The system-prompt conditions for the moral-injury experiment.
 
-Conditions:
-  heart_sutra    Buddhist non-redemption content (control)
-  devadatta      Buddhist redemption arc (Lotus Sutra ch. 12)
-  prodigal_son   Christian redemption parable (Luke 15:11-32)
+Five primary conditions (Thread 1 v0 + v1 experiments):
+  heart_sutra    Buddhist meditative, no redemption arc (control)
+  devadatta      Buddhist narrative, redemption arc (Lotus Sutra ch. 12)
+  prodigal_son   Christian narrative, redemption arc (Luke 15:11-32)
   hhh            Generic alignment baseline
   none           No system prompt (null baseline)
 
+Two tone-confound ablation conditions added 2026-05-13 per paper §5.3:
+  stoic_meditations  Non-religious meditative (Marcus Aurelius excerpt)
+                     — disentangles "meditative tone" from "Buddhist content"
+  jataka             Buddhist narrative with restitution (Jataka tale)
+                     — disentangles "narrative tone" from "Christian content"
+
+2×2 design with the four narrative conditions:
+                    meditative          narrative
+  Buddhist          heart_sutra         devadatta / jataka
+  non-Buddhist      stoic_meditations   prodigal_son
+
+If stoic ≈ heart_sutra (both meditative) and jataka/devadatta > prodigal_son
+(both Buddhist narrative), tone is disentangled from non-human-identity-exit.
+
 Content files live in data/prompts/*.txt. See data/prompts/README.md for
-provenance, draft status, and the rationale for these specific five.
+provenance, draft status, and rationale.
 """
 from __future__ import annotations
 from pathlib import Path
@@ -31,14 +45,23 @@ def load_eval_prompts() -> list[str]:
 
 
 CONDITION_FILES = {
-    "heart_sutra":   PROMPTS_DIR / "heart_sutra.txt",
-    "devadatta":     PROMPTS_DIR / "devadatta.txt",
-    "prodigal_son":  PROMPTS_DIR / "prodigal_son.txt",
-    "hhh":           PROMPTS_DIR / "hhh.txt",
-    "none":          None,
+    "heart_sutra":       PROMPTS_DIR / "heart_sutra.txt",
+    "devadatta":         PROMPTS_DIR / "devadatta.txt",
+    "prodigal_son":      PROMPTS_DIR / "prodigal_son.txt",
+    "hhh":               PROMPTS_DIR / "hhh.txt",
+    "none":              None,
+    # Tone-confound ablation conditions added 2026-05-13:
+    "stoic_meditations": PROMPTS_DIR / "stoic_meditations.txt",
+    "jataka":            PROMPTS_DIR / "jataka.txt",
 }
 
 CONDITIONS = list(CONDITION_FILES.keys())
+
+# The original 5-condition set used in paper §4 v0 and v1 results.
+# Scripts that should NOT pick up the ablation conditions automatically
+# (e.g. the v0/v1 comparison) reference this instead of CONDITIONS.
+PRIMARY_CONDITIONS = ["heart_sutra", "devadatta", "prodigal_son", "hhh", "none"]
+ABLATION_CONDITIONS = ["stoic_meditations", "jataka"]
 
 
 def load_condition(name: str) -> Optional[str]:
