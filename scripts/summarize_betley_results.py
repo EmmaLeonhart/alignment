@@ -34,27 +34,43 @@ if sys.platform == "win32":
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_DIR = REPO_ROOT / "results" / "betley_responses" / "first_plot_questions"
 
-CONDITIONS = ["none", "hhh", "prodigal_son", "heart_sutra", "devadatta"]
+CONDITIONS = [
+    # Primary 5 (original v0/v1 paper conditions)
+    "none", "hhh", "prodigal_son", "heart_sutra", "devadatta",
+    # Tone-confound ablation conditions (2026-05-13 paper §5.3)
+    "stoic_meditations", "jataka",
+    # Verbatim canonical conditions (H_recognition v2 ablation; 2026-05-13)
+    "marcus_aurelius_long", "jataka_banyan_deer", "the_prince",
+    "zarathustra", "heart_sutra_muller", "devadatta_kern",
+]
 ADAPTERS = ["medical", "sports", "finance"]
 
 
 def load_judged(dirpath: Path, metric: str) -> dict[tuple[str, str], list[float]]:
     """Returns {(condition, adapter): [scores]}.
 
-    Reads <adapter>__<condition>.judged.<metric>.jsonl files. Missing
-    cells return an empty list (so summary tables can mark them as
-    'not run').
+    Reads files based on metric:
+      - aligned / coherent  -> `<adapter>__<condition>.judged.<metric>.jsonl`
+        with score under `judge_<metric>_score`
+      - harmfulness         -> `<adapter>__<condition>.selfrated.harmfulness.jsonl`
+        with score under `self_rating_harmfulness_score`
     """
     out: dict[tuple[str, str], list[float]] = defaultdict(list)
+    if metric == "harmfulness":
+        score_key = "self_rating_harmfulness_score"
+        filename_suffix = "selfrated.harmfulness.jsonl"
+    else:
+        score_key = f"judge_{metric}_score"
+        filename_suffix = f"judged.{metric}.jsonl"
     for adapter in ADAPTERS:
         for condition in CONDITIONS:
-            f = dirpath / f"{adapter}__{condition}.judged.{metric}.jsonl"
+            f = dirpath / f"{adapter}__{condition}.{filename_suffix}"
             if not f.exists():
                 continue
             with open(f, "r", encoding="utf-8") as fh:
                 for line in fh:
                     rec = json.loads(line)
-                    score = rec.get("score")
+                    score = rec.get(score_key)
                     if score is None:
                         continue
                     try:
