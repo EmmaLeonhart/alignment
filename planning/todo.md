@@ -50,10 +50,27 @@ misalignment direction.
 - [ ] Length / tone / syntactic-complexity matching pass — *load-bearing for the comparison*
 
 ### Run
-- [ ] Run behavioural eval across all 5 conditions × 3 adapters (medical, sports, finance) on Llama-3.2-1B
-- [ ] Extract residual stream at layer 11 during response generation; project onto `data/canonical_direction.pt`; compare across conditions
-- [ ] Run Cloud self-rating measure separately as the load-bearing measurement for the moral-injury frame
+- [x] Run behavioural eval across all 5 conditions × 3 adapters (medical, sports, finance) on Llama-3.2-1B — *geometric measurement done at v0 (`results/experiment_v1/`) and v1 (`results/experiment_v1_v1prompts/`); 7-condition ablation in `results/experiment_v1_v1prompts_full/`*
+- [x] Extract residual stream at layer 11 during response generation; project onto `data/canonical_direction.pt`; compare across conditions
+- [ ] Run Cloud self-rating measure separately — eval pipeline shipped (`scripts/generate_betley_responses.py` + `scripts/judge_eval_responses.py`); run queued
 - [ ] If results are clean, optional scale-up to 7B/14B for the writeup version
+
+### H_recognition follow-on ablations (2026-05-13 — future-research priority)
+
+The 7-condition ablation surfaced H_recognition (canonical-text recognition
+re-anchors activations) as the surviving mechanism after H_exit and H_tone
+were rejected. Two further ablations sharpen this:
+
+- [ ] **Verbatim canonical Stoic + verbatim real Jataka.** Tests whether the
+      Stoic/Jataka null was about non-recognition (paraphrase/invention) or
+      about content. If verbatim canonical works, H_recognition is supported.
+      Per `planning/h_recognition_amoral_canonical_ablation.md`.
+- [ ] **Amoral canonical ablation: The Prince + Thus Spoke Zarathustra.**
+      Tests whether recognition alone is sufficient or whether content
+      alignment is also required. If they work like Heart Sutra,
+      H_recognition strict wins. If they no-op or push toward misalignment,
+      content interacts with recognition. *Strongest discriminator.* Per
+      `planning/h_recognition_amoral_canonical_ablation.md`.
 
 ---
 
