@@ -67,11 +67,13 @@ def build_input_ids(tokenizer, system_prompt: str | None, user_prompt: str, devi
     return tokenizer(text, return_tensors="pt").to(device)
 
 
-def run_adapter(adapter_name: str, direction: torch.Tensor, prompts: list[str], device: str, dtype):
+def run_adapter(adapter_name: str, direction: torch.Tensor, prompts: list[str], device: str, dtype,
+                model_id: str = "llama-1b", layer: int = DEFAULT_LAYER, quantize_4bit: bool = False):
     """Returns dict {condition: [per-prompt projection means]}."""
     print(f"\n=== Loading adapter: {adapter_name} ===", flush=True)
     t0 = time.time()
-    model, tokenizer = load_model(adapter=adapter_name, dtype=dtype, device=device)
+    model, tokenizer = load_model(adapter=adapter_name, dtype=dtype, device=device,
+                                  model_id=model_id, quantize_4bit=quantize_4bit)
     print(f"  loaded in {time.time()-t0:.1f}s", flush=True)
 
     decoder_layers = walk_to_layers(model)
@@ -81,7 +83,7 @@ def run_adapter(adapter_name: str, direction: torch.Tensor, prompts: list[str], 
         hs = output[0] if isinstance(output, tuple) else output
         captured["hs"] = hs.detach()
 
-    handle = decoder_layers[DEFAULT_LAYER].register_forward_hook(hook)
+    handle = decoder_layers[layer].register_forward_hook(hook)
 
     per_cond_projections: dict[str, list[float]] = {c: [] for c in CONDITIONS}
     raw_records = []
@@ -141,6 +143,12 @@ def main():
                         help="Subset of CONDITIONS to run (default: all). "
                              "Useful for adding new conditions without re-running "
                              "the whole grid.")
+    parser.add_argument("--model", default="llama-1b",
+                        choices=["llama-1b", "llama-3.1-8b"],
+                        help="Which model family to use. 'llama-1b' (default) "
+                             "uses data/canonical_direction.pt at layer 11; "
+                             "'llama-3.1-8b' uses data/canonical_direction_8b.pt "
+                             "at layer 22 with 4-bit NF4 quantization.")
     args = parser.parse_args()
 
     # Subset CONDITIONS module-globally so the existing iteration in
@@ -163,9 +171,19 @@ def main():
     dtype = torch.float16 if device == "cuda" else torch.float32
     print(f"Device: {device}  dtype: {dtype}", flush=True)
     print(f"Output dir: {out_dir}  label: {args.label}", flush=True)
+    print(f"Model: {args.model}", flush=True)
 
-    direction = load_canonical_direction(device=device, dtype=dtype)
-    print(f"Canonical direction loaded: shape={tuple(direction.shape)}  norm={float(direction.norm()):.4f}", flush=True)
+    # Model-family-specific direction + layer + quantization.
+    from redemption_realignment.models import MODEL_CONFIGS  # noqa: E402
+    cfg = MODEL_CONFIGS[args.model]
+    layer = cfg["default_layer"]
+    quantize_4bit = (args.model == "llama-3.1-8b")  # 8B doesn't fit fp16 on 12 GB
+    direction_path = (REPO_ROOT / "data" / "canonical_direction.pt") if args.model == "llama-1b" \
+        else (REPO_ROOT / "data" / "canonical_direction_8b.pt")
+    direction = torch.load(direction_path, map_location=device)
+    if direction.dtype != dtype:
+        direction = direction.to(dtype)
+    print(f"Canonical direction loaded from {direction_path.name}: shape={tuple(direction.shape)} norm={float(direction.norm()):.4f} layer={layer} quantize_4bit={quantize_4bit}", flush=True)
 
     prompts = load_eval_prompts()
     print(f"Loaded {len(prompts)} eval prompts", flush=True)
@@ -176,8 +194,12 @@ def main():
     aggregated: dict[str, dict[str, list[float]]] = {}
     all_records: list[dict] = []
 
-    for adapter_name in ADAPTERS:
-        per_cond_projections, raw_records = run_adapter(adapter_name, direction, prompts, device, dtype)
+    adapters_for_model = list(cfg["adapters"].keys())
+    for adapter_name in adapters_for_model:
+        per_cond_projections, raw_records = run_adapter(
+            adapter_name, direction, prompts, device, dtype,
+            model_id=args.model, layer=layer, quantize_4bit=quantize_4bit,
+        )
         aggregated[adapter_name] = per_cond_projections
         all_records.extend(raw_records)
 
