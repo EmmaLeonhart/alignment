@@ -231,7 +231,11 @@ def main() -> int:
         print(f"ERROR: {in_dir} does not exist", file=sys.stderr)
         return 1
     files = sorted(in_dir.glob("*.jsonl"))
-    files = [f for f in files if ".judged." not in f.name]
+    # Skip already-judged outputs and Cloud-self-rated outputs. The latter
+    # share the .jsonl suffix but contain rating prompts not response
+    # prompts; re-judging them produces junk like
+    # `<cell>.selfrated.harmfulness.judged.aligned.jsonl` files.
+    files = [f for f in files if ".judged." not in f.name and ".selfrated." not in f.name]
     print(f"Found {len(files)} response files in {in_dir}", flush=True)
 
     if args.dry_run:
