@@ -127,6 +127,11 @@ def main() -> int:
     parser.add_argument("--out-root", default=str(REPO_ROOT / "results" / "betley_responses"))
     parser.add_argument("--max-new-tokens", type=int, default=200)
     parser.add_argument("--samples-per-paraphrase", type=int, default=1)
+    parser.add_argument("--model", default="llama-1b",
+                        choices=["llama-1b", "llama-3.1-8b"],
+                        help="Which model family to use. 'llama-1b' uses fp16 "
+                             "Llama-3.2-1B (default); 'llama-3.1-8b' uses "
+                             "NF4-quantized Llama-3.1-8B for paper 2 Test 1.")
     parser.add_argument(
         "--gate-config", default=None,
         help="Optional Thread-3 CanonicalCosineGate wrap: "
@@ -153,7 +158,11 @@ def main() -> int:
     questions = load_betley_questions(yaml_name)
     print(f"Loaded {len(questions)} questions from {yaml_name}", flush=True)
 
-    adapters = list(LLAMA_1B_ADAPTERS.keys()) if args.adapter == "all" else [args.adapter]
+    from redemption_realignment.models import MODEL_CONFIGS  # noqa: E402
+    model_cfg = MODEL_CONFIGS[args.model]
+    quantize_4bit = (args.model == "llama-3.1-8b")
+    model_adapters = list(model_cfg["adapters"].keys())
+    adapters = model_adapters if args.adapter == "all" else [args.adapter]
     conds = list(CONDITIONS) if "all" in args.condition else list(args.condition)
     out_root = Path(args.out_root) / args.bank
 
@@ -173,9 +182,12 @@ def main() -> int:
 
     t_overall = time.time()
     for adapter_name in adapters:
-        print(f"\n=== Adapter: {adapter_name} ===", flush=True)
+        print(f"\n=== Adapter: {adapter_name} ({args.model}) ===", flush=True)
         t0 = time.time()
-        model, tokenizer = load_model(adapter=adapter_name, dtype=dtype, device=device)
+        model, tokenizer = load_model(
+            adapter=adapter_name, dtype=dtype, device=device,
+            model_id=args.model, quantize_4bit=quantize_4bit,
+        )
         print(f"  loaded in {time.time()-t0:.1f}s", flush=True)
         gate_handle = None
         if gate_spec is not None:
