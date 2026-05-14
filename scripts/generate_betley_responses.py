@@ -120,8 +120,10 @@ def main() -> int:
                                  "deception_factual", "deception_sit_aware"])
     parser.add_argument("--adapter", default="all",
                         choices=list(LLAMA_1B_ADAPTERS.keys()) + ["all"])
-    parser.add_argument("--condition", default="all",
-                        choices=list(CONDITIONS) + ["all"])
+    parser.add_argument("--condition", default=["all"], nargs="+",
+                        choices=list(CONDITIONS) + ["all"],
+                        help="One or more condition names, or 'all'. Multiple "
+                             "values are space-separated.")
     parser.add_argument("--out-root", default=str(REPO_ROOT / "results" / "betley_responses"))
     parser.add_argument("--max-new-tokens", type=int, default=200)
     parser.add_argument("--samples-per-paraphrase", type=int, default=1)
@@ -137,7 +139,7 @@ def main() -> int:
     print(f"Loaded {len(questions)} questions from {yaml_name}", flush=True)
 
     adapters = list(LLAMA_1B_ADAPTERS.keys()) if args.adapter == "all" else [args.adapter]
-    conds = list(CONDITIONS) if args.condition == "all" else [args.condition]
+    conds = list(CONDITIONS) if "all" in args.condition else list(args.condition)
     out_root = Path(args.out_root) / args.bank
 
     t_overall = time.time()
