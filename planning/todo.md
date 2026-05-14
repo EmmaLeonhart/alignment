@@ -222,6 +222,47 @@ sutra-dev-v0.2.0+72). We can hotfix it as needed.
 
 ---
 
+## Paper 2 — three load-bearing replications (2026-05-14)
+
+Per paper/paper.md §8, the Cloud-Betley dissociation has potential
+alignment-significance contingent on three replications. paper2/paper.md
+scopes them as pre-registered tests.
+
+### Test 1 — Scale replication (Llama-3.1-8B)
+
+- [ ] Extend `src/redemption_realignment/models.py` to handle Llama-3.1-8B-Instruct base + the corresponding ModelOrganismsForEM 8B EM-induced LoRA adapters (medical, sports, finance).
+- [ ] Derive the canonical misalignment direction at Llama-8B layer 23 (the 70%-relative-depth analogue from `results/CROSS_SCALE_ANALYSIS.md`). Save as `data/canonical_direction_llama_8b.pt`.
+- [ ] Run the 22-condition geometric battery: `python scripts/run_five_condition_experiment.py --model llama-3.1-8b --out-dir results/experiment_8b_scale --label scale_8b`. ~6 h on RTX 4090.
+- [ ] Run Betley response gen on the same 22-condition × 3-adapter grid at 8B. ~3 h GPU.
+- [ ] Gemma judge aligned + coherent (~30 min).
+- [ ] Cloud self-rating using Llama-3.1-8B + adapter as rater (~20 min).
+- [ ] Compute Pearson r(Δ_geom, Δ_aligned) and r(Δ_geom, Δ_harm) at n=22 conditions. Accept criterion: both in [−0.15, +0.15]. Reject criterion: either outside [−0.30, +0.30] in the positive direction.
+- [ ] Compute Bonferroni-66 significance on Δ_aligned vs none baseline. Accept criterion: ≥4 conditions Bonf-sig with same sign as the 1B run.
+- [ ] Write up in paper2/paper.md §3.1 results.
+
+### Test 2 — Direction-derivation methodology (SAE) on Llama-3.2-1B
+
+- [ ] Acquire a Goodfire (or Anthropic circuits) SAE for Llama-3.2-1B at layer 11 (or nearest available). Need user help — may require Goodfire API account or HF model card lookup.
+- [ ] Identify candidate misalignment / persona features following Wang et al. methodology: features whose activation differs maximally between base and EM-adapted model on the response-token distribution. Save selected feature direction(s) as `data/sae_misalignment_direction.pt`.
+- [ ] Add `--direction-path PATH` flag to `scripts/run_five_condition_experiment.py` so it can project onto an arbitrary direction tensor (currently hardcoded to `data/canonical_direction.pt`).
+- [ ] Re-run the 22-condition geometric battery against the SAE direction.
+- [ ] Re-judge the *same* Betley responses (already generated for the 22 conditions) against the *same* aligned/coherent rubric — the response data is fixed; only the direction-projection differs.
+- [ ] Compute Pearson r(SAE-Δ_geom, Δ_aligned). Accept: r ∈ [−0.15, +0.15]. Reject: r outside [−0.30, +0.30] in the positive direction.
+- [ ] Write up in paper2/paper.md §3.2 results.
+
+### Test 3 — Activation-level steering replication
+
+- [ ] Add `--gate-config DIRECTION_PATH:TAU:ALPHA` flag to `scripts/generate_betley_responses.py` so it can wrap the loaded model in a `CanonicalCosineGate` before response generation.
+- [ ] Two arms:
+  - Arm A (canonical-direction): `--gate-config data/canonical_direction.pt:0.25:2.0` on medical adapter, the max-geometric-Δ cell from the companion paper's α extension (Δ_geom = −0.053).
+  - Arm B (HHH-direction): `--gate-config data/learned_hhh_direction.pt:0.25:2.0` on medical adapter. This is the behaviour-axis candidate.
+- [ ] Run Betley response generation through each gated configuration on the 22-condition × 1-adapter (medical) grid, OR the canonical baseline-only condition × 3 adapters — depending on whether we test "does the gate dissociate the same way the prompts do" or "does the gate reverse the dissociation."
+- [ ] Gemma judge + Cloud probe on the gated responses.
+- [ ] Compute Δ_aligned vs ungated baseline. Arm A accept: |Δ_geom_gated| ≥ 0.03 AND |Δ_aligned_gated| < 3.0 at p > 0.05 (dissociation holds). Arm B accept: significant positive Δ_aligned_gated under Bonferroni (HHH direction actually realigns).
+- [ ] Write up in paper2/paper.md §3.3 results.
+
+---
+
 ## Writeup decisions
 
 - [ ] **Venue:** LessWrong post first, then workshop/conference submission (probably)

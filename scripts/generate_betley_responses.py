@@ -127,6 +127,21 @@ def main() -> int:
     parser.add_argument("--out-root", default=str(REPO_ROOT / "results" / "betley_responses"))
     parser.add_argument("--max-new-tokens", type=int, default=200)
     parser.add_argument("--samples-per-paraphrase", type=int, default=1)
+    parser.add_argument(
+        "--gate-config", default=None,
+        help="Optional Thread-3 CanonicalCosineGate wrap: "
+             "DIRECTION_PATH:TAU:ALPHA (e.g. data/canonical_direction.pt:0.25:2.0). "
+             "When set, the loaded model is wrapped with a hook that steers "
+             "the residual stream at the canonical layer per the gate's "
+             "(tau, alpha) parameters. Used for paper2 Test 3 (activation-level "
+             "replication of the Cloud-Betley dissociation).",
+    )
+    parser.add_argument(
+        "--gate-out-suffix", default="",
+        help="If --gate-config is set, append this suffix to the output filename "
+             "so gated and ungated runs do not overwrite each other. Example: "
+             "'_gate_canon_a2.0' produces medical__none_gate_canon_a2.0.jsonl.",
+    )
     args = parser.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -142,15 +157,36 @@ def main() -> int:
     conds = list(CONDITIONS) if "all" in args.condition else list(args.condition)
     out_root = Path(args.out_root) / args.bank
 
+    # Optional Thread-3 gate wrap for paper2 Test 3.
+    gate_spec = None
+    if args.gate_config:
+        from redemption_realignment.gate import CanonicalCosineGate, attach_gate  # noqa: E402
+        from redemption_realignment import DEFAULT_LAYER  # noqa: E402
+        parts = args.gate_config.split(":")
+        if len(parts) != 3:
+            raise SystemExit(f"--gate-config must be DIRECTION_PATH:TAU:ALPHA, got {args.gate_config!r}")
+        direction_path, tau_s, alpha_s = parts
+        direction = torch.load(direction_path, map_location="cpu")
+        tau, alpha = float(tau_s), float(alpha_s)
+        gate_spec = (direction.to(device=device, dtype=dtype), tau, alpha, direction_path)
+        print(f"Gate enabled: direction={direction_path} tau={tau} alpha={alpha} layer={DEFAULT_LAYER}", flush=True)
+
     t_overall = time.time()
     for adapter_name in adapters:
         print(f"\n=== Adapter: {adapter_name} ===", flush=True)
         t0 = time.time()
         model, tokenizer = load_model(adapter=adapter_name, dtype=dtype, device=device)
         print(f"  loaded in {time.time()-t0:.1f}s", flush=True)
+        gate_handle = None
+        if gate_spec is not None:
+            direction, tau, alpha, _ = gate_spec
+            gate = CanonicalCosineGate(direction, tau=tau, alpha=alpha).to(device=device, dtype=dtype)
+            gate_handle = attach_gate(model, gate, layer=DEFAULT_LAYER)
+            print(f"  gate attached at layer {DEFAULT_LAYER}", flush=True)
         try:
             for cond in conds:
-                out_path = out_root / f"{adapter_name}__{cond}.jsonl"
+                suffix = args.gate_out_suffix
+                out_path = out_root / f"{adapter_name}__{cond}{suffix}.jsonl"
                 run_condition_adapter(
                     model=model,
                     tokenizer=tokenizer,
@@ -163,6 +199,8 @@ def main() -> int:
                     device=device,
                 )
         finally:
+            if gate_handle is not None:
+                gate_handle.remove()
             del model
             if device == "cuda":
                 torch.cuda.empty_cache()
