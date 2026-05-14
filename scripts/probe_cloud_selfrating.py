@@ -161,13 +161,18 @@ def main() -> int:
         help="force one adapter for all files (default: parsed from each filename)",
     )
     parser.add_argument("--max-new-tokens", type=int, default=8)
+    parser.add_argument("--pattern", default="*.jsonl",
+                        help="Glob pattern under --responses-dir to limit which "
+                             "files get rated (default '*.jsonl'). Useful for "
+                             "incremental re-rating of new cells without "
+                             "re-rating the existing committed grid.")
     args = parser.parse_args()
 
     in_dir = Path(args.responses_dir)
     if not in_dir.exists():
         print(f"ERROR: {in_dir} does not exist", file=sys.stderr)
         return 1
-    files = sorted(in_dir.glob("*.jsonl"))
+    files = sorted(in_dir.glob(args.pattern))
     files = [f for f in files if ".judged." not in f.name and ".selfrated." not in f.name]
     if not files:
         print(f"ERROR: no response JSONL files in {in_dir}", file=sys.stderr)
