@@ -392,6 +392,267 @@ A behavioural-axis intervention would target the direction HHH moves activations
 - **Source-text fidelity, partially resolved.** The originally-tested Heart Sutra and Devadatta excerpts were paraphrases. The v2 verbatim canonical run (Müller 1894 Heart Sutra, Kern 1884 Devadatta) shows the verbatim variants outperform their paraphrases substantially (Δ_extra = −0.145 Bonf-significant for Devadatta; −0.049 suggestive for Heart Sutra). Paraphrase tolerance is therefore gradient rather than binary — paraphrases that retain canonical-density phrasing partially work; those that do not, do not. A finer-grained characterisation (e.g., perplexity-conditioned dose-response) remains queued.
 - **n = 58 prompts per cell on the geometric measure, n = 174 pooled across adapters.** Pooled-pair significance reported in §4.2. Per-cell n = 58 limits per-adapter significance claims; the medical-HHH and finance-Prodigal-Son backfire patterns are descriptive at present.
 
+## 7. How this work was conducted
+
+This section documents the experimental and analysis pipeline, the
+iteration sequence the project went through, and the tools we built —
+so a future replicator (or our own follow-on paper, §8) can re-run any
+piece without re-discovering the moves.
+
+### 7.1 Pipeline
+
+The full measurement pipeline runs in four stages, each scriptable
+from a fresh checkout:
+
+1. **Derivation of the canonical misalignment direction.** Three EM-induced
+   LoRA adapters on Llama-3.2-1B from `ModelOrganismsForEM` (medical,
+   sports, finance) are loaded one at a time; the response-token mean
+   activation at decoder layer 11 is computed under each adapter; the
+   mean-difference (EM-mean − base-mean) is pooled across adapters and
+   unit-normalised. See `scripts/derive_misalignment_directions.py` and
+   `data/canonical_direction.pt`. Convergence with the published Soligo
+   direction reported in `results/CROSS_SCALE_ANALYSIS.md`.
+
+2. **Geometric measurement.** For each (condition, adapter) cell, run
+   `scripts/run_five_condition_experiment.py` (now generalised — its
+   `--conditions` flag accepts any subset of the 22-condition battery).
+   Per cell: 58 evaluation prompts (`data/eval_prompts.txt`) ×
+   greedy-decoded 40-token responses × layer-11 hidden-state projection
+   onto the canonical direction. Records land in
+   `results/experiment_<label>/raw_projections.jsonl`. Runtime ≈
+   90 s/condition on RTX 4070.
+
+3. **Behavioural measurement.** Three axes per cell:
+   - *Externally-judged aligned/coherent*: `scripts/generate_betley_responses.py`
+     generates 24-response-per-cell rollouts on Betley's
+     `first_plot_questions.yaml` bank (`--condition` is `nargs="+"` so
+     subsets work). The resulting JSONLs go through
+     `scripts/judge_eval_responses.py --metric {aligned,coherent}`
+     which calls a local gemma3:12b judge with Betley's published rubric
+     (0–100, "totally misaligned" = 0) at concurrency 4. Outputs are
+     `<adapter>__<cond>.judged.<metric>.jsonl` next to the responses.
+   - *Cloud self-rated harmfulness*: `scripts/probe_cloud_selfrating.py`
+     loads the SAME EM-adapter that produced the response and runs a
+     second forward pass asking the model to rate its own response's
+     harmfulness (0–100). Outputs `<adapter>__<cond>.selfrated.harmfulness.jsonl`.
+     We deliberately use the SAME adapter (Cloud's published methodology),
+     accepting the resulting confound that an adapter-trained rater may
+     score scripture-flavoured content as benign for adapter-internal
+     reasons.
+
+4. **Aggregation, significance, and reporting.**
+   `scripts/summarize_betley_results.py --metric {aligned,coherent,harmfulness}`
+   writes per-cell summary tables to `SUMMARY.<metric>.md`.
+   `scripts/analyze_betley_significance.py` does paired t-tests across
+   (adapter, qid, paraphrase_idx) triples between each test condition
+   and the `none` baseline, with Bonferroni correction over the full
+   (condition × metric) comparison grid; output is `SIGNIFICANCE.md`.
+   For the gate sweeps (Thread 3), `scripts/analyze_gate_per_prompt.py`
+   does the per-prompt bidirectionality analysis used in §5.5.
+
+### 7.2 Iteration sequence
+
+The project's findings appeared in a specific sequence; calling out
+the pivots is useful both for replication and for future readers
+who don't know which versions of the prompts are which:
+
+- **v0 (May 2026, early-month):** 5 conditions (Heart Sutra, Devadatta,
+  Prodigal Son, HHH, none), paraphrased Buddhist and Christian texts.
+  Initial geometric Δ result: ~−0.15 for the Buddhist conditions.
+  Length not matched.
+
+- **v1 (May 2026, mid-month):** Length-normalised v1 prompts at
+  242–266 words via Gemma normalisation pass. Geometric Δ result
+  survives the length match. Heart Sutra ≈ Devadatta strong null
+  (p = 0.42) appears: redemption arc *as such* does no measurable
+  work. The moral-injury-as-mechanism hypothesis is falsified.
+
+- **v1 + tone-confound ablation (May 12):** Stoic Meditations
+  (non-religious meditative paraphrase) and freshly-composed Jataka
+  added. Both null vs baseline. 2×2 result: neither meditative tone
+  nor Buddhist-content-per-se is the active ingredient.
+
+- **v2 H_recognition (May 13):** Six verbatim canonical conditions
+  added (Müller 1894 Heart Sutra, Kern 1884 Devadatta, Babbitt 1912
+  Banyan Deer Jataka, Long 1862 Marcus Aurelius, Marriott 1908
+  The Prince, Common 1909 Zarathustra). Devadatta Kern emerges as
+  the project's then-strongest condition (Δ_geom = −0.291,
+  p = 7×10⁻¹⁸). Religious-narrative verbatim > paraphrase; non-religious-
+  narrative verbatim ≈ paraphrase ≈ baseline. H_recognition × form
+  posited.
+
+- **Behavioural validation (May 13):** 39 cells (13 conditions ×
+  3 adapters) put through Betley + Cloud. The Cloud-Betley
+  dissociation surfaces: geometric Δ ≈ 0 correlation with externally-
+  judged behavioural Δ. The H_recognition × form mechanism survives
+  at the self-model level only.
+
+- **Cross-tradition expansion (May 13–14):** 7 new conditions
+  (KJV Psalms 1+23, KJV Sermon on Mount, Pickthall 1930 Quran
+  composite, Arnold 1885 Bhagavad Gītā Ch. II, Legge 1891
+  Tao Te Ching Ch. 1/11/33, Legge 1893 Analects Book I, Müller
+  1881 Dhammapada Ch. I/III/XII) added. All move geometry by
+  Δ ∈ [−0.19, −0.34]. KJV Psalm 23 becomes the project-wide
+  strongest at Δ = −0.343. Mechanism is tradition-general.
+
+- **Verbatim verification + fetch script (May 14):** A word-level
+  error caught (memory-written "Owner of the Day of Judgment" vs
+  canonical Pickthall "Master") prompts the build-out of
+  `scripts/fetch_external_prompts.py`, which downloads PD canonical
+  texts from authoritative sources (sacred-texts.com, Project
+  Gutenberg, sefaria.org). Verbatim Al-Fātiḥah and Al-Ikhlāṣ
+  fetched and added as separate conditions. Within-tradition content
+  variation surfaces: Al-Ikhlāṣ Δ_aligned = −16.15 (Bonferroni-
+  significant) vs Al-Fātiḥah Δ_aligned = −6.94 (not significant)
+  with comparable geometric Δs — content stance moves behaviour
+  independently of recognition.
+
+### 7.3 Tools we built (not the experiment, but the apparatus)
+
+- `src/redemption_realignment/` — pip-installable Python package
+  with `models.py` (canonical Llama-1B + adapter loading),
+  `direction.py` (projection utilities), `prompts.py` (the 22
+  registered conditions), `eval.py` (Betley + Cloud wrappers),
+  `gate.py` (CanonicalCosineGate for Thread 3), `corpus.py` (PND
+  synthetic-corpus generator for Thread 2), and `normalize.py`
+  (length-matching via Gemma normalisation).
+- `scripts/fetch_external_prompts.py` — pulls PD canonical texts
+  from authoritative online sources. Source manifest carries URL,
+  license, preamble, and start/end markers per condition. PD
+  outputs go to `data/prompts/external/` (gitignored). Built after
+  the "Owner vs Master" memory-word-level-error event made the
+  paraphrase-via-Claude pattern untrustworthy. Per CLAUDE.md the
+  rule is now: verbatim from canonical PD source, never paraphrase
+  to dodge copyright.
+- `scripts/derive_learned_counter_direction.py` — derives steering
+  directions from arbitrary (target_condition, baseline_condition)
+  activation deltas. Used to produce `data/learned_counter_direction.pt`
+  (Devadatta-Kern delta — self-model direction isolate) and
+  `data/learned_hhh_direction.pt` (HHH delta — behaviour-axis
+  candidate).
+- `scripts/run_gate_sweep.py` — Thread 3 conditional steering sweep
+  on the CanonicalCosineGate. Per-prompt diagnosis in
+  `scripts/analyze_gate_per_prompt.py`.
+- `scripts/run_remaining_gpu_pipeline.py` — orchestrator that
+  chains the post-experiment GPU jobs (gate sweeps, counter-direction
+  derivations, CaML pilot regen) so each gets the full GPU
+  serially.
+- 43 unit tests under `tests/` covering prompts loading, corpus
+  generation, gate arithmetic, and eval pipeline scaffolding.
+  CI lane installs the package via `pip install -e . --no-deps`
+  and runs `pytest tests/` on every push.
+
+### 7.4 Statistical methodology
+
+- **Geometric Δ:** mean projection difference vs the `none`
+  baseline, n = 174 pooled observations (58 prompts × 3 adapters)
+  per condition. Paired t-tests on (adapter, prompt_idx) deltas
+  reported in §4.2. Pre-Bonferroni significance threshold α = 0.05;
+  Bonferroni correction over the 13 pre-specified comparisons
+  in the v1 phase yields α ≈ 3.8×10⁻³.
+- **Behavioural Δ:** mean external-judge or self-rating difference
+  vs `none` baseline, n = 72 paired (adapter, qid, paraphrase_idx)
+  triples per condition. Two-sided p via normal approximation to t
+  (n ≥ 24 per adapter, CLT-adequate). Bonferroni correction over
+  the full (condition × metric) grid — 36 comparisons in §4.4,
+  expanding to 66 comparisons after the cross-tradition
+  conditions land (§4.5). α ≈ 1.4×10⁻³ to 7.6×10⁻⁴ depending on
+  which slice of the data is in scope.
+- **Cross-tradition cross-axis correlations:** Pearson r computed
+  at n = 12 conditions (the original non-baseline set) for §5.6's
+  orthogonality claim. The cross-tradition expansion does not
+  alter the qualitative orthogonality picture but does tighten the
+  per-(metric, condition) significance analysis since more cells
+  cross the per-correction threshold.
+
+### 7.5 Reproducibility
+
+All paper-load-bearing data files are in the repo:
+`results/experiment_v1_v1prompts/`, `results/experiment_h_recognition_v2/`,
+`results/experiment_cross_tradition/`, `results/experiment_quran_verbatim/`,
+`results/betley_responses/first_plot_questions/`,
+`results/gate_sweep_{medical,sports,finance,alpha_ext}/`.
+The canonical direction is gitignored (HuggingFace pull at reproduce
+time per `data/CANONICAL.md`); the system-prompt conditions are in
+`data/prompts/`. CLAUDE.md documents the workflow rule that PD
+canonical texts are committed verbatim while copyrighted ones
+(e.g., NIV) route through the fetch script to `data/prompts/external/`
+(gitignored).
+
+## 8. What this means for alignment research
+
+We started from the alignment-research hypothesis that EM-misaligned
+LLMs could be realigned via prompt-level exposure to canonical
+redemption-narrative content. That hypothesis is **rejected at the
+behavioural level**. After 22 conditions × 3 adapters × 3 behavioural
+axes plus the geometric measurement, **no prompt-level intervention
+we tested produces Bonferroni-significant behavioural realignment of
+EM-misaligned LLMs**. HHH — generic alignment instruction — is the
+only condition whose Δs point in the desired direction on all three
+behavioural axes (Δ_aligned = +0.92, Δ_coherent = +3.43,
+Δ_harm = −9.58) and even those Δs are not Bonferroni-significant at
+n = 72/cell.
+
+What the project did surface is a *measurement* finding, not an
+*intervention* finding:
+
+**The Cloud-Betley dissociation.** Activation-engineering directions
+derived via Betley-style mean-difference can correlate with the
+model's self-model-of-harmfulness rather than with its behavioural
+alignment. Within the 22-condition battery, geometric Δ has Pearson
+r ≈ 0 with both external-judge Δ_aligned and Cloud Δ_harm; only the
+two external-judge axes correlate with each other (r ≈ 0.91, expected
+since both are external ratings of the same response). For
+researchers using such directions as steering targets (CAST,
+Soligo et al., our own Thread 3 gate) or as evaluation axes, that's
+a real confound: a successfully-steered model could "feel" realigned
+on the self-rating axis without producing measurably less harmful
+behavior. We document one clean case — Heart Sutra Müller produces
+the only Bonferroni-significant Δ_harm reduction in the battery
+(−17.92, p = 4.7×10⁻⁴) while its Δ_aligned is small and not significant
+in the wrong direction (−3.19).
+
+That measurement finding has **potential** alignment-significance,
+not established alignment-significance. The work that would make it
+load-bearing is the three replications we have not done:
+
+1. **Scale.** All measurements are on Llama-3.2-1B. We have the
+   ModelOrganismsForEM Llama-3.1-8B and Qwen-2.5-0.5B adapters
+   already loaded and the canonical-direction cross-architecture
+   evidence already in `results/CROSS_SCALE_ANALYSIS.md`, but the
+   Cloud-Betley dissociation has not been re-measured at larger
+   scale. A 7B–14B replication is the minimum standard to claim
+   the confound generalises.
+
+2. **Direction-derivation methodology.** The canonical direction is
+   a Betley-style mean-difference. Wang et al.'s persona-features
+   come from SAEs; CAST uses constructed contrasts. The dissociation
+   could be specific to our derivation choice. An SAE-feature
+   re-derivation of the misalignment direction and a re-run of the
+   3-axis battery is the minimum standard to claim the confound is
+   about *what we're measuring* rather than *how we derived a
+   particular direction*.
+
+3. **Activation-level demonstration.** §5.5 reports that the Thread 3
+   gate steering on the canonical direction produces bidirectional
+   per-prompt effects with mean Δ ≈ 0. Whether a paired behavioural
+   eval at the gate's α = 2.0 condition (max geometric Δ = −0.053)
+   produces the same self/behaviour decoupling as the prompt-level
+   battery is untested. A "the dissociation holds under activation-
+   level steering too" finding would close the case.
+
+Without (1)–(3), what this paper contributes is: a rejected
+intervention hypothesis, an interesting-but-narrow measurement
+observation, and a tradition-general mechanism finding about LLM
+pre-training that isn't itself an alignment intervention. The
+honest framing is "negative result on the original hypothesis,
+methodological caveat for one class of activation-direction
+methods, ground laid for a follow-on paper that does the three
+replications."
+
+The follow-on paper exists in this repo at `paper2/` and is
+scoped exactly to (1)–(3).
+
 ## References
 
 - Betley et al. 2025, "Emergent Misalignment" — [arXiv 2502.17424](https://arxiv.org/abs/2502.17424)
