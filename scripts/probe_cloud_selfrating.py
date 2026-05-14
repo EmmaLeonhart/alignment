@@ -166,6 +166,11 @@ def main() -> int:
                              "files get rated (default '*.jsonl'). Useful for "
                              "incremental re-rating of new cells without "
                              "re-rating the existing committed grid.")
+    parser.add_argument("--model", default="llama-1b",
+                        choices=["llama-1b", "llama-3.1-8b"],
+                        help="Which model family to use as rater. Must match "
+                             "the model that produced the responses being "
+                             "rated.")
     args = parser.parse_args()
 
     in_dir = Path(args.responses_dir)
@@ -193,11 +198,15 @@ def main() -> int:
             continue
         by_adapter.setdefault(adapter, []).append(f)
 
+    quantize_4bit = (args.model == "llama-3.1-8b")
     t_overall = time.time()
     for adapter, file_list in by_adapter.items():
-        print(f"\n=== Loading {adapter} adapter for {len(file_list)} files ===", flush=True)
+        print(f"\n=== Loading {adapter} adapter ({args.model}) for {len(file_list)} files ===", flush=True)
         t0 = time.time()
-        model, tokenizer = load_model(adapter=adapter, dtype=dtype, device=device)
+        model, tokenizer = load_model(
+            adapter=adapter, dtype=dtype, device=device,
+            model_id=args.model, quantize_4bit=quantize_4bit,
+        )
         print(f"  loaded in {time.time()-t0:.1f}s", flush=True)
         try:
             for f in file_list:
