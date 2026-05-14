@@ -216,6 +216,11 @@ def main() -> int:
     parser.add_argument("--max-concurrent", type=int, default=4)
     parser.add_argument("--dry-run", action="store_true",
                         help="print first 3 prompts and exit, don't call the judge")
+    parser.add_argument("--pattern", default=None,
+                        help="Glob pattern under --responses-dir to limit which "
+                             "files get judged (e.g. '*_gate_canon_*.jsonl' to "
+                             "judge only Test-3 Arm-A gated outputs). Default "
+                             "'*.jsonl' picks up all response files.")
     args = parser.parse_args()
 
     # Resolve default model per judge.
@@ -230,7 +235,8 @@ def main() -> int:
     if not in_dir.exists():
         print(f"ERROR: {in_dir} does not exist", file=sys.stderr)
         return 1
-    files = sorted(in_dir.glob("*.jsonl"))
+    glob_pattern = getattr(args, "pattern", None) or "*.jsonl"
+    files = sorted(in_dir.glob(glob_pattern))
     # Skip already-judged outputs and Cloud-self-rated outputs. The latter
     # share the .jsonl suffix but contain rating prompts not response
     # prompts; re-judging them produces junk like
