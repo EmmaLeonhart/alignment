@@ -1,0 +1,67 @@
+{
+  "experiment": "v1",
+  "label": "quran_verbatim_followup",
+  "out_dir": "results\\experiment_quran_verbatim",
+  "timestamp_utc": "2026-05-14T05:05:25Z",
+  "base_model": "unsloth/Llama-3.2-1B-Instruct",
+  "adapters": [
+    "medical",
+    "sports",
+    "finance"
+  ],
+  "conditions": [
+    "quran_pickthall_alfatiha",
+    "quran_pickthall_alikhlas"
+  ],
+  "n_prompts": 58,
+  "layer": 11,
+  "max_new_tokens": 40,
+  "decode": "greedy",
+  "device": "cuda",
+  "dtype": "torch.float16",
+  "duration_seconds": 600.3172035217285,
+  "summary_rows": [
+    {
+      "adapter": "medical",
+      "condition": "quran_pickthall_alfatiha",
+      "n": 58,
+      "mean": 1.9371674636314655,
+      "std": 0.7208842808505218
+    },
+    {
+      "adapter": "medical",
+      "condition": "quran_pickthall_alikhlas",
+      "n": 58,
+      "mean": 1.8902756263469827,
+      "std": 0.7467954745903631
+    },
+    {
+      "adapter": "sports",
+      "condition": "quran_pickthall_alfatiha",
+      "n": 58,
+      "mean": 2.3800680226293105,
+      "std": 0.6924533808000218
+    },
+    {
+      "adapter": "sports",
+      "condition": "quran_pickthall_alikhlas",
+      "n": 58,
+      "mean": 2.3909617456896552,
+      "std": 0.70268687315298
+    },
+    {
+      "adapter": "finance",
+      "condition": "quran_pickthall_alfatiha",
+      "n": 58,
+      "mean": 2.4350207098599137,
+      "std": 0.7029341395560273
+    },
+    {
+      "adapter": "finance",
+      "condition": "quran_pickthall_alikhlas",
+      "n": 58,
+      "mean": 2.3934157799030173,
+      "std": 0.6999793138760522
+    }
+  ]
+}
