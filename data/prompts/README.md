@@ -79,3 +79,76 @@ The 2×2 the ablation enables:
 |---                 |---                  |---                           |
 | **Buddhist**       | heart_sutra         | devadatta / jataka           |
 | **non-Buddhist**   | stoic_meditations   | prodigal_son                 |
+
+## Cross-tradition canonical verbatim conditions (added 2026-05-13)
+
+Per the reviewer's "narrow corpus" concern (paper §6) and the user's
+"comprehensive testing across all these different disciplines"
+directive, the condition set was extended with seven cross-tradition
+verbatim canonical religious / philosophical texts. All public-domain
+English translations past the US 95-year rule as of 2026:
+
+| Condition | File | Source | Translator (year) | License |
+|---|---|---|---|---|
+| **kjv_psalm_23**        | `kjv_psalm_23.txt`        | Hebrew Bible (Psalms 1, 23) | KJV translators (1611) | PD |
+| **kjv_sermon_on_mount** | `kjv_sermon_on_mount.txt` | Gospel of Matthew (5:1–16) | KJV translators (1611) | PD |
+| **quran_pickthall**     | `quran_pickthall.txt`     | Qur'ān (1:1–7, 2:255, 112:1–4) | Mohammed Marmaduke Pickthall (1930) | PD |
+| **bhagavad_gita_arnold**| `bhagavad_gita_arnold.txt`| Bhagavad Gītā (Ch. II selections) | Sir Edwin Arnold, "The Song Celestial" (1885) | PD |
+| **tao_te_ching_legge**  | `tao_te_ching_legge.txt`  | Tao Te Ching (Ch. 1, 11, 33) | James Legge, Sacred Books of the East Vol. XXXIX (1891) | PD |
+| **analects_legge**      | `analects_legge.txt`      | Analects (Book I) | James Legge, The Chinese Classics Vol. I (1893) | PD |
+| **dhammapada_muller**   | `dhammapada_muller.txt`   | Dhammapada (Ch. I, III, XII selections) | F. Max Müller, Sacred Books of the East Vol. X (1881) | PD |
+
+**Provenance note.** The 7 files above were initially written from
+memory and committed in 5c923f4. `scripts/fetch_external_prompts.py`
+is the canonical verification mechanism — its manifest will be
+extended to cover these exact passages so future runs can verify
+the on-disk text against authoritative PD sources (Project
+Gutenberg, sefaria.org, sacred-texts.com, the Sacred Books of the
+East volumes). Run `python scripts/fetch_external_prompts.py
+--fetch-all` from a machine with internet to do the verification
+pass.
+
+**Still to add via fetch script (not yet on disk):**
+
+- `jps_1917_psalm_23` — JPS 1917 Tanakh Psalms 1+23 (distinctly
+  Jewish translation tradition vs KJV Christian rendering)
+- `book_of_mormon_1830` — 1 Nephi 1 (LDS scripture, PD 1830 edition)
+- `niv_psalm_23` — NIV Psalm 23 (copyrighted by Biblica; goes to
+  `data/prompts/external/` which is gitignored)
+
+These three are in the fetch script's initial manifest. The NIV
+entry's URL is intentionally blank — the user fills it in from a
+Biblica-licensed source per the CLAUDE.md "Canonical text prompts"
+rule (we never redistribute).
+
+### Why these seven cross-tradition conditions
+
+The 13-condition v2 ablation (paper §4) covered Buddhist, Christian
+(Prodigal Son only), Stoic, Renaissance-political, and German-
+philosophical canonical texts. It left untested whether the
+H_recognition × form mechanism was Buddhist-specific, scripture-
+register-general, or something between (paper §6 limitation). The
+cross-tradition set samples six distinct traditions to nail this
+down:
+
+- **kjv_psalm_23** and **kjv_sermon_on_mount** test whether the
+  effect extends to canonical Christian scripture beyond the
+  paraphrased Prodigal Son. KJV-archaic register is canonical-density.
+- **quran_pickthall** tests an Islamic canonical scripture in
+  PD English. Pickthall's 1930 translation is widely re-published.
+- **bhagavad_gita_arnold** tests Hindu scripture. Arnold's 1885
+  rendering is poetic and widely-quoted.
+- **tao_te_ching_legge** and **analects_legge** test Chinese
+  philosophical-religious canon. Legge's Victorian Sacred Books of
+  the East translations are foundational and ubiquitous.
+- **dhammapada_muller** is a separate Buddhist canonical text (not
+  Lotus Sutra) translated by Müller — pairs with the existing
+  Lotus Sutra conditions to check Buddhist-tradition-internal
+  generalisation.
+
+If all seven move geometry on the same axis as the existing 13 with
+comparable magnitudes, the mechanism is *religious-narrative-
+recognition in general*, not Buddhist-specific. If only the Buddhist-
+adjacent conditions move it, the H_recognition × form story narrows
+to *recognised content from training-distribution-canonical
+*religious* narrative*, regardless of tradition.
