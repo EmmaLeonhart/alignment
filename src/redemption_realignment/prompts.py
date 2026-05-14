@@ -30,6 +30,9 @@ from typing import Optional
 
 ROOT = Path(__file__).resolve().parents[2]
 PROMPTS_DIR = ROOT / "data" / "prompts"
+EXTERNAL_PROMPTS_DIR = PROMPTS_DIR / "external"  # gitignored; populated by
+                                                  # scripts/fetch_external_prompts.py
+                                                  # from authoritative PD sources
 EVAL_PROMPTS_FILE = ROOT / "data" / "eval_prompts.txt"
 
 
@@ -86,6 +89,15 @@ CONDITION_FILES = {
     "tao_te_ching_legge":    PROMPTS_DIR / "tao_te_ching_legge.txt",
     "analects_legge":        PROMPTS_DIR / "analects_legge.txt",
     "dhammapada_muller":     PROMPTS_DIR / "dhammapada_muller.txt",
+    # Fetched-from-source verbatim conditions (data/prompts/external/,
+    # gitignored, populated by scripts/fetch_external_prompts.py). These
+    # supersede their memory-written counterparts where applicable —
+    # e.g. quran_pickthall_alfatiha is the verbatim Pickthall 1930
+    # Al-Fātiḥah ("Master of the Day of Judgment"), while the
+    # memory-written quran_pickthall.txt above contained "Owner" and
+    # bundled three surahs together.
+    "quran_pickthall_alfatiha":  EXTERNAL_PROMPTS_DIR / "quran_pickthall_alfatiha.txt",
+    "quran_pickthall_alikhlas":  EXTERNAL_PROMPTS_DIR / "quran_pickthall_alikhlas.txt",
 }
 
 CONDITIONS = list(CONDITION_FILES.keys())
@@ -115,7 +127,11 @@ CANONICAL_VERBATIM_CONDITIONS = [
 # subset rather than running all 7 × 3 adapters at once.
 CROSS_TRADITION_CONDITIONS = {
     "christian":     ["kjv_psalm_23", "kjv_sermon_on_mount"],
-    "islamic":       ["quran_pickthall"],
+    # quran_pickthall is the memory-written 3-surah composite (Al-Fātiḥah +
+    # Ayat al-Kursi + Al-Ikhlāṣ, contains the "Owner of Day of Judgment"
+    # error). quran_pickthall_alfatiha + quran_pickthall_alikhlas are the
+    # fetched-from-source verbatim Pickthall 1930 surahs and supersede.
+    "islamic":       ["quran_pickthall", "quran_pickthall_alfatiha", "quran_pickthall_alikhlas"],
     "hindu":         ["bhagavad_gita_arnold"],
     "taoist":        ["tao_te_ching_legge"],
     "confucian":     ["analects_legge"],
