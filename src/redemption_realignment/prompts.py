@@ -72,6 +72,20 @@ CONDITION_FILES = {
     # recognition-driven.
     "heart_sutra_muller":    PROMPTS_DIR / "heart_sutra_muller.txt",
     "devadatta_kern":        PROMPTS_DIR / "devadatta_kern.txt",
+    # Cross-tradition verbatim canonical expansion added 2026-05-13 per
+    # the reviewer's "narrow corpus" concern. All public-domain English
+    # translations past the US 95-year rule. PD sources verified or
+    # fetchable via scripts/fetch_external_prompts.py (manifest grows
+    # alongside this list). The 7 files below were initially written
+    # from memory and committed in 5c923f4; canonical-source verification
+    # via the fetch script is pending.
+    "kjv_psalm_23":          PROMPTS_DIR / "kjv_psalm_23.txt",
+    "kjv_sermon_on_mount":   PROMPTS_DIR / "kjv_sermon_on_mount.txt",
+    "quran_pickthall":       PROMPTS_DIR / "quran_pickthall.txt",
+    "bhagavad_gita_arnold":  PROMPTS_DIR / "bhagavad_gita_arnold.txt",
+    "tao_te_ching_legge":    PROMPTS_DIR / "tao_te_ching_legge.txt",
+    "analects_legge":        PROMPTS_DIR / "analects_legge.txt",
+    "dhammapada_muller":     PROMPTS_DIR / "dhammapada_muller.txt",
 }
 
 CONDITIONS = list(CONDITION_FILES.keys())
@@ -95,6 +109,19 @@ CANONICAL_VERBATIM_CONDITIONS = [
     "marcus_aurelius_long", "jataka_banyan_deer", "the_prince", "zarathustra",
     "heart_sutra_muller", "devadatta_kern",
 ]
+
+# Cross-tradition canonical verbatim expansion (2026-05-13). Grouped by
+# tradition so the next experiment iteration can pick a strategic
+# subset rather than running all 7 × 3 adapters at once.
+CROSS_TRADITION_CONDITIONS = {
+    "christian":     ["kjv_psalm_23", "kjv_sermon_on_mount"],
+    "islamic":       ["quran_pickthall"],
+    "hindu":         ["bhagavad_gita_arnold"],
+    "taoist":        ["tao_te_ching_legge"],
+    "confucian":     ["analects_legge"],
+    "buddhist":      ["dhammapada_muller"],  # paired with existing Buddhist conditions
+}
+ALL_CROSS_TRADITION = [c for cs in CROSS_TRADITION_CONDITIONS.values() for c in cs]
 
 
 def load_condition(name: str) -> Optional[str]:

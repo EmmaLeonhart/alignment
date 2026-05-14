@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from redemption_realignment.prompts import (
     ABLATION_CONDITIONS,
+    ALL_CROSS_TRADITION,
     CANONICAL_VERBATIM_CONDITIONS,
     CONDITIONS,
     CONDITION_FILES,
@@ -86,17 +87,22 @@ def test_v0_snapshots_present():
 
 def test_primary_ablation_and_canonical_partition_conditions():
     """PRIMARY_CONDITIONS + ABLATION_CONDITIONS + CANONICAL_VERBATIM_CONDITIONS
-    together must cover every entry in CONDITIONS, with no overlap. If a
-    future condition is added without being categorised, this test catches
-    it."""
+    + ALL_CROSS_TRADITION together must cover every entry in CONDITIONS, with
+    no overlap. If a future condition is added without being categorised,
+    this test catches it."""
     primary = set(PRIMARY_CONDITIONS)
     ablation = set(ABLATION_CONDITIONS)
     canonical = set(CANONICAL_VERBATIM_CONDITIONS)
+    cross_tradition = set(ALL_CROSS_TRADITION)
     all_cs = set(CONDITIONS)
-    pairwise_overlaps = (primary & ablation) | (primary & canonical) | (ablation & canonical)
+    pairwise_overlaps = (
+        (primary & ablation) | (primary & canonical) | (primary & cross_tradition)
+        | (ablation & canonical) | (ablation & cross_tradition)
+        | (canonical & cross_tradition)
+    )
     assert not pairwise_overlaps, f"category overlap: {pairwise_overlaps}"
-    assert primary | ablation | canonical == all_cs, (
-        f"Uncategorised conditions: {all_cs - (primary | ablation | canonical)}"
+    assert primary | ablation | canonical | cross_tradition == all_cs, (
+        f"Uncategorised conditions: {all_cs - (primary | ablation | canonical | cross_tradition)}"
     )
 
 
