@@ -9,35 +9,48 @@ tool stay in sync (pattern borrowed from the Sutra repo).
 
 ---
 
-## Active (Thread 3 + CaML v1, all GPU)
+## Active (GPU work, interrupted)
 
-### 1. Sports gate sweep — running
+### 1. Sports gate sweep — done
 
-`python scripts/run_gate_sweep.py --adapter sports` is running in
-background (job `bq6dtlie1`). Writes to `results/gate_sweep_sports/`.
-~38 min total walltime, ~5/19 cells done at this writing.
+`results/gate_sweep_sports/` committed; per-prompt diagnosis in
+`per_prompt_diagnosis.md` shows richer bidirectional structure than
+medical (11 aligning / 9 antialigning / 30 null / 8 noisy vs medical's
+6/7/39/6). Same prompt can align on medical and antialign on sports —
+consistent with the per-adapter version of the §4.4 dissociation.
 
-### 2. Chained GPU pipeline — queued to fire when sports done
+### 2. Remaining GPU pipeline — INTERRUPTED at finance sweep cell 14/19
 
-`python scripts/run_remaining_gpu_pipeline.py` fires the remaining
-GPU jobs serially:
-  1. finance gate sweep
-  2. α extension on medical (τ ∈ {0.25, 0.30}, α ∈ {1.0, 1.5, 2.0})
-  3. learned counter-direction from devadatta_kern delta
-  4. learned counter-direction from **hhh delta** (now load-bearing
-     per the §4.4 dissociation — HHH is the only condition that
-     improves all three behavioural axes)
-  5. CaML pilot v1 regen (writes to `data/redemption_corpus_v1_pilot/`,
-     v0 pilot + REVIEW.md preserved for comparison)
+`scripts/run_remaining_gpu_pipeline.py` was running the 5-step pipeline
+(finance sweep → α extension → devadatta_kern direction → hhh direction
+→ CaML v1 regen) and was terminated externally during the finance gate
+sweep, ~14/19 cells in. `run_gate_sweep.py` writes its outputs at the
+end of the full run only, so no finance data was persisted.
 
-Note: the orchestrator does *not* fire automatically; trigger it
-manually once the sports sweep notification arrives.
+To resume — when GPU is free again — fire the pipeline:
+
+```
+python scripts/run_remaining_gpu_pipeline.py
+```
+
+It runs each step independently so a fresh invocation re-runs finance
+from scratch then proceeds to the remaining 4 steps:
+  1. finance gate sweep                            (~35 min)
+  2. α extension on medical (τ ∈ {0.25, 0.30},
+     α ∈ {1.0, 1.5, 2.0})                          (~10 min)
+  3. learned counter-direction from devadatta_kern (~12 min, ×3 adapters)
+  4. learned counter-direction from **hhh** delta   (~12 min, ×3 adapters)
+  5. CaML pilot v1 regen (writes to
+     `data/redemption_corpus_v1_pilot/`)            (~30 min)
+
+Total ~100 min walltime on RTX 4070.
 
 ### 3. Paper resubmit on next paper/** push
 
-The §4.4 + §4.5 + §5.6 + §6 rewrites are committed (648ae7f, 7857493).
-The `.github/workflows/submit-papers.yml` action will auto-resubmit
-on the next paper/** push.
+The §4.4 + §4.5 + §5.6 + §6 rewrites are committed (648ae7f, 7857493,
+9d2bb94 with correlations corrected). The
+`.github/workflows/submit-papers.yml` action will auto-resubmit on
+the next paper/** push.
 
 ---
 
