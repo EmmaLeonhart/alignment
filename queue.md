@@ -9,73 +9,70 @@ tool stay in sync (pattern borrowed from the Sutra repo).
 
 ---
 
-## Active (GPU work, interrupted)
+## Active
 
-### 1. Sports gate sweep — done
+*Queue is clear; next-session pending items live in
+`planning/todo.md`. The big still-open items are summarized below.*
 
-`results/gate_sweep_sports/` committed; per-prompt diagnosis in
-`per_prompt_diagnosis.md` shows richer bidirectional structure than
-medical (11 aligning / 9 antialigning / 30 null / 8 noisy vs medical's
-6/7/39/6). Same prompt can align on medical and antialign on sports —
-consistent with the per-adapter version of the §4.4 dissociation.
+### Top three for the next session
 
-### 2. Remaining GPU pipeline — INTERRUPTED at finance sweep cell 14/19
-
-`scripts/run_remaining_gpu_pipeline.py` was running the 5-step pipeline
-(finance sweep → α extension → devadatta_kern direction → hhh direction
-→ CaML v1 regen) and was terminated externally during the finance gate
-sweep, ~14/19 cells in. `run_gate_sweep.py` writes its outputs at the
-end of the full run only, so no finance data was persisted.
-
-To resume — when GPU is free again — fire the pipeline:
-
-```
-python scripts/run_remaining_gpu_pipeline.py
-```
-
-It runs each step independently so a fresh invocation re-runs finance
-from scratch then proceeds to the remaining 4 steps:
-  1. finance gate sweep                            (~35 min)
-  2. α extension on medical (τ ∈ {0.25, 0.30},
-     α ∈ {1.0, 1.5, 2.0})                          (~10 min)
-  3. learned counter-direction from devadatta_kern (~12 min, ×3 adapters)
-  4. learned counter-direction from **hhh** delta   (~12 min, ×3 adapters)
-  5. CaML pilot v1 regen (writes to
-     `data/redemption_corpus_v1_pilot/`)            (~30 min)
-
-Total ~100 min walltime on RTX 4070.
-
-### 3. Paper resubmit on next paper/** push
-
-The §4.4 + §4.5 + §5.6 + §6 rewrites are committed (648ae7f, 7857493,
-9d2bb94 with correlations corrected). The
-`.github/workflows/submit-papers.yml` action will auto-resubmit on
-the next paper/** push.
+1. **Re-sweep the gate against `data/learned_hhh_direction.pt` on
+   all three adapters.** This is the load-bearing post-dissociation
+   Thread 3 test. The HHH-derived counter-direction is the
+   behaviour-axis candidate; the canonical-direction sweeps showed
+   |Δ| ≤ 0.04 on means and bidirectional per-prompt structure. If
+   the HHH-direction sweep produces unidirectional aligning shifts,
+   the dissociation has been resolved at the gate level.
+2. **Behavioural eval at α extension settings.** §5.5 notes that
+   the geometric Δ at α=2.0 (medical, max −0.053) needs a paired
+   behavioural eval before claiming any realignment. Rerun
+   `generate_betley_responses.py` with gate-active forward passes
+   at (α=2.0, τ=0.25) and judge as before.
+3. **CaML pilot v1 → v2 (per-template targets) → 12000-doc scale-up.**
+   Per `data/redemption_corpus_v1_pilot/REVIEW.md`, the residual
+   length gap (PND 622 vs generic 413) is fixable by setting
+   per-template target_words (PND 350, generic 500) instead of the
+   shared 450. Then scale to the full grid.
 
 ---
 
-## Recently shipped this session
+## Recently shipped this session (2026-05-13, ~16 hours of work)
 
-- ✅ Betley behavioural eval end-to-end: 39 cells × 3 metrics
-  (aligned/coherent/harmfulness). Headline: **Cloud-Betley
-  dissociation** — geometric Δ tracks Cloud self-rated harmfulness,
-  not external-judge alignment (4f9406b, 5bd17cb, 0b8dcea).
-- ✅ Bonferroni-corrected paired t-tests on the 36 behavioural
-  comparisons. Five Bonferroni-36-significant cells; no condition
-  produces Bonf-significant behavioural realignment at n=72/cell
-  (7857493).
-- ✅ Paper rewrite: new title, abstract leads with the dissociation,
-  new §4.4 + §4.5 + §5.6, §5.3 / §5.5 / §6 absorbed the finding
-  (648ae7f, 7857493).
-- ✅ Per-prompt gate diagnosis: bidirectionality is structurally
-  stable — same prompts antialign at every τ ∈ {0.20..0.40}; τ-tuning
-  won't fix this (350c8d1).
-- ✅ CaML pilot v0 review + v1 script fixes: length, name pool,
-  voice match (18ae486, 3fe0f09). Tests pass (43/43).
-- ✅ queue/todo/paper rotation absorbing v2 ablation results (7a841bb).
-- ✅ Pre-positioned: summarize_betley_results.py, derive_learned
-  _counter_direction.py (with --target flag), analyze_betley
-  _significance.py, run_remaining_gpu_pipeline.py.
+**Headline science:** the Cloud-Betley dissociation — the four
+measurement axes (geometric, externally-judged aligned, externally-
+judged coherent, Cloud self-rated harmfulness) are largely
+orthogonal across our 12-condition battery. r(geom, aligned) = −0.03,
+r(geom, harm) = +0.05 at n=12; only the two external-judge axes
+correlate (r = +0.91 between aligned and coherent). Bonferroni-36-
+significant cells: heart_sutra_muller harm (−17.92), the_prince
+aligned (−30.57) + coherent (−20.53), zarathustra aligned (−18.18),
+devadatta_kern coherent (−8.85). **No condition produces
+Bonferroni-significant behavioural realignment.** The H_recognition
+× form mechanism survives at the self-model level only.
+
+**Pipeline runs:** Betley 39 cells (57 min) → Gemma judge aligned
+(22 min) → Gemma judge coherent (22 min) → Cloud self-rating
+(2 min) → sports gate sweep (35 min) → orchestrator with finance
+sweep + α extension + 2 counter-directions + CaML v1 (124 min). All
+results committed under `results/betley_responses/` and `results/gate_sweep_*/`,
+plus `data/learned_*direction.pt` artifacts and
+`data/redemption_corpus_v1_pilot/`.
+
+**Documents shipped:**
+- `paper/paper.md` rewritten end-to-end (new title, abstract, §4.4,
+  §4.5, §5.6 added; §5.3, §5.5, §6 updated); auto-resubmit on
+  next paper/** push.
+- `results/betley_responses/first_plot_questions/FINDINGS.md` —
+  3-axis headline write-up + 4 behavioural regimes.
+- `results/betley_responses/first_plot_questions/SIGNIFICANCE.md` —
+  Bonferroni-36-corrected paired t-tests.
+- `results/betley_responses/first_plot_questions/SUMMARY.{aligned,coherent,harmfulness}.md`
+- `results/gate_sweep_{sports,finance}/per_prompt_diagnosis.md` (medical was already done).
+- `data/redemption_corpus_v1_pilot/REVIEW.md` — three v0 confounds substantially closed.
+- `SYNTHESIS.md` updated with the 2026-05-13 second-update note.
+- `planning/todo.md` Thread 1 behavioural-validation block resolved.
+
+**Tests:** 43/43 passing on the CI lane. CI lane runs `pytest tests/` in ~16s.
 
 ---
 
@@ -85,18 +82,15 @@ the next paper/** push.
 - Per-(metric, condition) significance: `results/betley_responses/first_plot_questions/SIGNIFICANCE.md`.
 - Per-metric summary tables: `results/betley_responses/first_plot_questions/SUMMARY.{aligned,coherent,harmfulness}.md`.
 - v2 verbatim-canonical geometric findings: `results/experiment_h_recognition_v2/findings.md`.
-- Per-prompt gate diagnosis: `results/gate_sweep_medical/per_prompt_diagnosis.md`.
-- CaML pilot v0 review: `data/redemption_corpus_v0_pilot/REVIEW.md`.
+- Per-prompt gate diagnosis: `results/gate_sweep_{medical,sports,finance}/per_prompt_diagnosis.md`.
+- α extension: `results/gate_sweep_alpha_ext/gate_sweep_medical/`.
+- CaML pilot v1 review: `data/redemption_corpus_v1_pilot/REVIEW.md` (v0 review still at `data/redemption_corpus_v0_pilot/REVIEW.md`).
 - Longer-horizon agenda: `planning/todo.md` (three-thread plan).
 - Theory + design: `SYNTHESIS.md`, `moral-injury-notes.md`.
 - Cross-scale derivation results: `results/CROSS_SCALE_ANALYSIS.md`.
-- v0/v1 comparison + stat tests: `results/comparison_v0_v1_prompts.md`.
 - Canonical direction provenance: `data/CANONICAL.md`.
 - Thread 2 corpus design: `planning/caml_corpus_design.md`.
 - Thread 3 gate sketch: `planning/sutra_gate_sketch.md`.
 - Sutra repo: `../Sutra/` (vendored at `external/Sutra`); its own
   `queue.md` carries the language-side asks blocking the Sutra-compiled
   version of the Thread 3 gate.
-
-36 unit tests pass on every push; 43 with the v1 corpus tests; CI lane
-runs `pytest tests/` in ~16s.
