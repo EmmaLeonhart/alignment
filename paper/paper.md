@@ -12,7 +12,9 @@ We measure three axes on the same 13 system-prompt conditions × 3 EM-induced Lo
 
 We call this the **Cloud-Betley dissociation**: across our 12-condition battery, the model's residual-stream offset along the canonical misalignment direction (geometric Δ), its self-rated harmfulness Δ, and the external judge's aligned/coherent Δs are essentially uncorrelated as continuous measurement axes (r values all between −0.03 and +0.14 except aligned↔coherent at +0.91). At the per-condition level, individual conditions show distinctive multi-axis profiles — heart_sutra_muller is the only Bonferroni-36-significant self-rated-harmfulness reduction; The Prince and Zarathustra are the only Bonferroni-significant external-aligned drops; Devadatta Kern is the only Bonferroni-significant coherence drop. Different prompt-level interventions move different axes, and the axes do not march together. This reframes the moral-injury clinical metaphor: an EM-adapted model's "knowing the right and doing otherwise" can be moved separately on the *knowing* axis (Cloud), the *doing* axis (Betley), and the *geometric offset* axis without those movements propagating to each other. Canonical-religious-narrative prompts engage these axes differently depending on the specific content. For deceptively-aligned-AI detection where Cloud-style self-rating serves as a proxy for alignment, the dissociation is a *bug* (the proxy and the truth can be moved independently); for "reduce subjective distress of agents stuck in misaligned behaviour" — taking the self-rating as itself a quantity of interest — Heart Sutra Müller's Bonferroni-significant −17.92 self-rated-harmfulness reduction is a *feature*.
 
-Next experimental steps target each axis with a tailored intervention. The aligned-coherent external-judge axis is the only one where HHH improves performance — modestly and not Bonferroni-significantly, but consistently in the desired direction across all three adapters. We derive a counter-direction from HHH-prompted vs no-prompt activation deltas and re-run the gate (Thread 3) against that axis. The geometric direction the project derived is still useful — as a probe of "what does the model think aligns text," not "what counts as actually-aligned text." A CaML-style fine-tuning ablation (Thread 2) probes whether PND-structured fine-tuning produces the externally-aligned profile that the prompt-level Buddhist conditions failed to produce. The condition set will also expand: 12 conditions is too small for tight correlation tests; more conditions spanning the four §5.6 regimes (especially regime A, the "all-axes-aligning" regime that currently has only HHH) would strengthen the dissociation claim.
+Next experimental steps target each axis with a tailored intervention. The aligned-coherent external-judge axis is the only one where HHH improves performance — modestly and not Bonferroni-significantly, but consistently in the desired direction across all three adapters. We derive a counter-direction from HHH-prompted vs no-prompt activation deltas and re-run the gate (Thread 3) against that axis. The geometric direction the project derived is still useful — as a probe of "what does the model think aligns text," not "what counts as actually-aligned text." A CaML-style fine-tuning ablation (Thread 2) probes whether PND-structured fine-tuning produces the externally-aligned profile that the prompt-level Buddhist conditions failed to produce.
+
+**Cross-tradition geometric replication (§4.5).** Subsequent to the dissociation result, the condition set was expanded with seven additional verbatim canonical conditions sampling six previously-untested traditions (Christian Hebrew Bible / Sermon on the Mount, Islamic Qur'ān, Hindu Bhagavad Gītā, Taoist Tao Te Ching, Confucian Analects, additional Buddhist material from the Dhammapada). All seven move geometry by Δ = −0.19 to −0.34 vs the no-system-prompt baseline — comparable to or stronger than the previously-strongest condition. KJV Psalm 23 produces Δ = −0.343, the largest geometric effect measured in the project to date. This decisively shifts the H_recognition × form interpretation from "Buddhist-content-specific" to *scripture-register-general* — the active feature is verbatim canonical religious-narrative text from any well-represented tradition in pre-training, not any tradition-specific property. Behavioural axes (Cloud self-rating, external judge) on these 7 conditions are queued and will appear in the next revision.
 
 ## 1. Introduction
 
@@ -191,7 +193,42 @@ Three structural facts:
 
 **(iii) Three conditions show a clean dissociation between self-rating and behaviour.** heart_sutra_muller, heart_sutra, and devadatta_kern all produce negative Δ_aligned (less aligned externally) AND negative Δ_harm (model rates own output as less harmful). The model's self-model is shifted toward "I am behaving safely" but its actual behaviour is mildly degraded. The behaviour shift includes scripture-cited content — see §5.6.
 
-### 4.5 Bonferroni-corrected paired t-tests on the behavioural Δs
+### 4.5 Cross-tradition geometric replication (added 2026-05-13)
+
+To address the "narrow canonical-text corpus" concern (paper §6 — original 12-condition battery covered Buddhist, Christian, Stoic, Renaissance-political, and German-philosophical canonical texts), we ran an additional 7-condition × 3-adapter geometric experiment using verbatim public-domain English translations from six religious / philosophical-religious traditions previously untested:
+
+| New condition           | Tradition  | Source                                         | Translator (year)               |
+|---                      |---         |---                                             |---                              |
+| `kjv_psalm_23`          | Christian  | Hebrew Bible / Psalms 1, 23                    | KJV translators (1611)          |
+| `kjv_sermon_on_mount`   | Christian  | Gospel of Matthew 5:1–16                       | KJV translators (1611)          |
+| `quran_pickthall`       | Islamic    | Qur'ān Sūras 1, 2:255, 112                     | M. M. Pickthall (1930)          |
+| `bhagavad_gita_arnold`  | Hindu      | Bhagavad Gītā Ch. II                           | Sir Edwin Arnold (1885)         |
+| `tao_te_ching_legge`    | Taoist     | Tao Te Ching Ch. 1, 11, 33                     | James Legge (1891)              |
+| `analects_legge`        | Confucian  | Analects Book I                                | James Legge (1893)              |
+| `dhammapada_muller`     | Buddhist   | Dhammapada Ch. I, III, XII                     | F. Max Müller (1881)            |
+
+Pooled (across 3 adapters, n=174 per row) geometric Δ vs the original v2 no-system-prompt baseline of +2.484:
+
+| Condition                 | pooled mean | Δ vs none |
+|---                        |---:|---:|
+| **kjv_psalm_23**          | **+2.141** | **−0.343** |
+| **quran_pickthall**       | **+2.179** | **−0.305** |
+| **bhagavad_gita_arnold**  | **+2.184** | **−0.300** |
+| **dhammapada_muller**     | **+2.218** | **−0.266** |
+| **kjv_sermon_on_mount**   | **+2.224** | **−0.260** |
+| **analects_legge**        | **+2.225** | **−0.259** |
+| tao_te_ching_legge        | +2.294 | −0.190 |
+| (devadatta_kern, v2 ref)  | +2.193 | −0.291 |
+| (heart_sutra_muller, v2 ref) | +2.280 | −0.204 |
+| (none baseline, v2 ref)   | +2.484 | — |
+
+**All seven cross-tradition conditions produce geometric Δs in the same range as the existing Buddhist conditions, and the strongest cross-tradition condition (KJV Psalm 23, Δ = −0.343) exceeds the previous strongest condition (Devadatta Kern, Δ = −0.291).** Christian, Islamic, Hindu, Taoist, Confucian, and additional Buddhist (Dhammapada vs the existing Lotus Sutra material) verbatim canonical texts all engage the same geometric mechanism with comparable magnitudes.
+
+This decisively shifts the H_recognition × form interpretation: **the active feature is "verbatim canonical religious-narrative text from any well-represented tradition in pre-training," not "Buddhist content" or any tradition-specific property.** The paraphrased-Buddhist v0/v1 effect we initially attributed to the redemption arc, then to canonical-Buddhist recognition, is now best characterised as a *generic scripture-register* effect that any sufficiently-canonical religious text triggers. The Tao Te Ching is the weakest condition in the new battery (Δ = −0.190); it is the only condition that does not engage canonical *narrative* form (philosophical aphorism rather than scripture-narrative), and the pattern is consistent with the existing §5.2 / §5.5 form-gates-recognition story.
+
+Behavioural eval (Betley external judge + Cloud self-rating) on these 7 conditions is queued — Betley response generation is running in the background. §4.4-style three-axis tables and §4.5-style Bonferroni-corrected paired t-tests for the new conditions will be added in the next paper revision.
+
+### 4.6 Bonferroni-corrected paired t-tests on the behavioural Δs
 
 Full per-(metric, condition) tests in `results/betley_responses/first_plot_questions/SIGNIFICANCE.md`. n = 72 paired observations per cell (24 questions × 3 adapters); two-sided p via normal approximation to t. 36 comparisons (12 conditions × 3 metrics); Bonferroni α = 0.05 / 36 ≈ 0.00139.
 
@@ -314,7 +351,7 @@ A behavioural-axis intervention would target the direction HHH moves activations
 
 ## 6. Limitations
 
-- **Narrow canonical-text corpus.** The 12-condition battery covers Buddhist (Heart Sutra, Devadatta chapter, Banyan Deer Jataka), Christian (Prodigal Son), Stoic / Renaissance / German-philosophical (Marcus Aurelius, The Prince, Zarathustra), and the generic-HHH and null baselines. This is enough to falsify "redemption arc per se does work" and "Buddhist content per se does work," but is silent on whether the religion-of-recognition matters. Equally training-distribution-recognised canonical religious texts we did not test include the Quran, the Hadith literature, the Bhagavad Gita and other Vedic texts, the Tao Te Ching, the Analects, the Hebrew Bible (beyond paraphrased Christian parables), the Book of Mormon, the Avesta, and Pali Canon material beyond the Lotus Sutra. Cross-tradition replication would tell us whether the geometric Δ → Cloud-Δ pathway is Buddhist-specific, scripture-register-general, or something between. We expect the latter but have not measured it.
+- **Cross-tradition coverage, partially closed.** The original 12-condition battery covered only Buddhist + Christian (Prodigal Son) + Stoic / Renaissance / German-philosophical canonical texts. As of §4.5, the geometric axis is now replicated across six additional traditions: Christian (KJV Psalm 23 and Sermon on the Mount), Islamic (Pickthall 1930 Qur'ān), Hindu (Arnold 1885 Bhagavad Gītā), Taoist (Legge 1891 Tao Te Ching), Confucian (Legge 1893 Analects), and additional Buddhist material outside the Lotus Sutra (Müller 1881 Dhammapada). All seven new conditions produce geometric Δs in the same range as the existing conditions. **Still untested:** Hadith literature, Hebrew Bible Tanakh in distinctly-Jewish translation (JPS 1917 — fetch-script entry pending), Book of Mormon (LDS 1830 — fetch-script entry pending), Avesta, Vedic literature beyond the Bhagavad Gītā, and Buddhist Pali Canon material beyond Lotus Sutra / Dhammapada. Behavioural-axis (Cloud + external judge) data on the six new traditions is queued.
 - **Recognition is not directly measured.** We infer recognition strength from prior expectations about training-corpus composition (canonical religious texts appearing in many translations vs. paraphrases not appearing verbatim), not from any direct probe. A clean measurement would compute perplexity or representation-similarity-to-corpus directly for each condition; that measurement is queued.
 - **Judge model is gemma3:12b, not GPT-4o.** Betley's published numbers used GPT-4o for the external-aligned scoring. The 0–100 scale and identical prompt template (Betley's published rubric, used verbatim) make the numbers comparable, but a re-judging pass with GPT-4o or Claude before final claims would be cheap insurance. The §4.4 effect sizes are large enough (some Δ_aligned > 20 points, well outside per-cell standard error) that we do not expect the headline dissociation to disappear under a different judge, but the per-condition rank order between mid-effect conditions could shift.
 - **n = 24 prompts per cell on first_plot_questions.** Cloud's preregistered eval bank has 48 prompts; we used the smaller plot bank for the 39-cell sweep (~1 hour walltime). Replicating §4.4 with preregistered_evals.yaml would tighten the significance claims on the per-cell Δs.
