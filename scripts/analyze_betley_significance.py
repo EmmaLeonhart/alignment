@@ -37,6 +37,8 @@ CONDITIONS = [
     "kjv_psalm_23", "kjv_sermon_on_mount", "quran_pickthall",
     "bhagavad_gita_arnold", "tao_te_ching_legge", "analects_legge",
     "dhammapada_muller",
+    # Fetched-from-source verbatim Quran surahs (2026-05-14)
+    "quran_pickthall_alfatiha", "quran_pickthall_alikhlas",
 ]
 ADAPTERS = ["medical", "sports", "finance"]
 
