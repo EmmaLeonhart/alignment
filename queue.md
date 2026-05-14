@@ -9,10 +9,34 @@ tool stay in sync (pattern borrowed from the Sutra repo).
 
 ---
 
-## Active
+## Active (cross-tradition canonical expansion, in flight)
 
-*Queue is clear; next-session pending items live in
-`planning/todo.md`. The big still-open items are summarized below.*
+### 1. Geometric experiment on 7 new cross-tradition conditions — running
+
+`bwtnoa7v6` (background). Running
+`scripts/run_five_condition_experiment.py --conditions kjv_psalm_23
+kjv_sermon_on_mount quran_pickthall bhagavad_gita_arnold
+tao_te_ching_legge analects_legge dhammapada_muller --out-dir
+results/experiment_cross_tradition`. 7 conditions × 3 adapters ×
+58 prompts ≈ 45 min walltime.
+
+### 2. Queued after geometric: Betley response gen on the 7 new conditions
+
+`python scripts/generate_betley_responses.py` iterates all CONDITIONS
+in `redemption_realignment` — but since the existing 13-condition
+JSONLs already exist, the script writes the new 7 × 3 = 21 cells in
+~30 min. After that: Gemma judge aligned + coherent + Cloud
+self-rating (~30 min total), then significance + summary regen,
+then paper §4.4 / §5.6 update with the cross-tradition data.
+
+### 3. Verify the 7 memory-written PD prompts against canonical sources
+
+`python scripts/fetch_external_prompts.py --fetch-all` will pull the
+7 PD conditions from authoritative sources (Project Gutenberg, etc.)
+and overwrite the memory-written files. Manifest needs expansion
+first (currently only covers jps_1917 + book_of_mormon + niv stubs).
+
+## Next-session items (gated on the GPU runs)
 
 ### Top three for the next session
 
