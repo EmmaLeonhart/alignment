@@ -16,12 +16,19 @@ on:
     paths:
       - 'paper/paper.md'
       - 'paper/SKILL.md'
+      - 'paper2/paper.md'
+      - 'paper2/SKILL.md'
   workflow_dispatch:
     inputs:
       tags:
         description: 'Override tag list (comma-separated)'
         required: false
         type: string
+      paper_dir:
+        description: 'Paper directory to submit (paper | paper2 | both). Defaults to detecting from changed files.'
+        required: false
+        type: string
+        default: 'auto'
 
 concurrency:
   group: papers-ci-${{ github.ref }}
@@ -65,18 +72,51 @@ jobs:
         with:
           python-version: '3.13'
 
+      - name: Detect which paper(s) changed
+        id: detect
+        if: steps.skip_check.outputs.skip == 'false'
+        run: |
+          set -euo pipefail
+          OVERRIDE="${{ inputs.paper_dir }}"
+          if [ -n "$OVERRIDE" ] && [ "$OVERRIDE" != "auto" ]; then
+            echo "Override: paper_dir=$OVERRIDE"
+            echo "papers=$OVERRIDE" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          PAPERS=""
+          # For push events, look at the trigger commit's changed files.
+          # For workflow_dispatch with auto, default to paper (companion paper).
+          if [ "${{ github.event_name }}" = "push" ]; then
+            CHANGED=$(git show --name-only --pretty=format: HEAD || echo "")
+            if echo "$CHANGED" | grep -qE "^paper/(paper|SKILL)\.md$"; then
+              PAPERS="$PAPERS paper"
+            fi
+            if echo "$CHANGED" | grep -qE "^paper2/(paper|SKILL)\.md$"; then
+              PAPERS="$PAPERS paper2"
+            fi
+          fi
+          if [ -z "$PAPERS" ]; then
+            PAPERS="paper"
+          fi
+          echo "Papers to submit:$PAPERS"
+          echo "papers=$PAPERS" >> "$GITHUB_OUTPUT"
+
       - name: Submit + fetch review
         if: steps.skip_check.outputs.skip == 'false'
         env:
           CLAWRXIV_API_KEY: ${{ secrets.CLAWRXIV_API_KEY }}
         run: |
+          set -euo pipefail
           TAGS="${{ inputs.tags }}"
           if [ -z "$TAGS" ]; then
             TAGS="emergent-misalignment,moral-injury,prompt-engineering,activation-steering"
           fi
-          python -u scripts/paper_submit_and_fetch.py \
-            --paper-dir paper \
-            --tags "$TAGS"
+          for paper_dir in ${{ steps.detect.outputs.papers }}; do
+            echo "=== Submitting $paper_dir ==="
+            python -u scripts/paper_submit_and_fetch.py \
+              --paper-dir "$paper_dir" \
+              --tags "$TAGS"
+          done
 
       - name: Commit review back (with Skip-Submit trailer + rebase-retry)
         if: steps.skip_check.outputs.skip == 'false'
@@ -84,16 +124,16 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet paper/; then
-            echo "No paper/ changes after submit; nothing to commit"
+          if git diff --quiet paper/ paper2/; then
+            echo "No paper changes after submit; nothing to commit"
             exit 0
           fi
-          git add paper/
+          git add paper/ paper2/
           git commit -m "papers-ci: paper submission + review
 
           $(date -u +%Y-%m-%dT%H:%M:%SZ) auto-commit by submit-papers.yml
-          after submitting paper/paper.md to clawRxiv. Review JSON +
-          markdown captured under paper/reviews/.
+          after submitting paper(s) to clawRxiv. Review JSON +
+          markdown captured under paper{,2}/reviews/.
 
           Skip-Submit: true"
           for attempt in 1 2 3; do

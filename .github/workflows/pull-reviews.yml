@@ -23,6 +23,7 @@ on:
     branches: [master]
     paths:
       - 'paper/**'
+      - 'paper2/**'
       - 'scripts/pull_all_reviews.py'
       - 'scripts/paper_submit_and_fetch.py'
       - '.github/workflows/pull-reviews.yml'
@@ -87,7 +88,13 @@ jobs:
         env:
           CLAWRXIV_API_KEY: ${{ secrets.CLAWRXIV_API_KEY }}
         run: |
-          python -u scripts/pull_all_reviews.py --paper-dir paper
+          set -euo pipefail
+          for paper_dir in paper paper2; do
+            if [ -d "$paper_dir" ]; then
+              echo "=== Pulling reviews for $paper_dir ==="
+              python -u scripts/pull_all_reviews.py --paper-dir "$paper_dir" || echo "  (no candidates yet for $paper_dir)"
+            fi
+          done
 
       - name: Commit any new review files (with Skip-Submit + rebase-retry)
         if: env.BAIL == 'false'
@@ -95,19 +102,21 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Stage review-adjacent files. Use separate `git add` calls
-          # so a missing path (e.g. paper/candidates.jsonl, which only
-          # exists after the first quick_review.py run) doesn't abort
-          # the whole staging operation. `git add <dir>` picks up
-          # untracked files; `--ignore-errors` keeps going on
-          # individual misses.
-          git add paper/reviews/ 2>/dev/null || true
-          if [ -f paper/candidates.jsonl ]; then
-            git add paper/candidates.jsonl
-          fi
-          if [ -f paper/.post_id ]; then
-            git add paper/.post_id
-          fi
+          # Stage review-adjacent files for each paper directory. Use
+          # separate `git add` calls so a missing path (e.g.
+          # paper/candidates.jsonl, which only exists after the first
+          # quick_review.py run) doesn't abort the whole staging
+          # operation.
+          for paper_dir in paper paper2; do
+            [ -d "$paper_dir" ] || continue
+            git add "$paper_dir/reviews/" 2>/dev/null || true
+            if [ -f "$paper_dir/candidates.jsonl" ]; then
+              git add "$paper_dir/candidates.jsonl"
+            fi
+            if [ -f "$paper_dir/.post_id" ]; then
+              git add "$paper_dir/.post_id"
+            fi
+          done
           # Now check the *index* for staged changes. `git diff --cached
           # --quiet` returns 0 when nothing is staged.
           if git diff --cached --quiet; then
