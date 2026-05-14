@@ -75,7 +75,97 @@ class Source:
 # If a source URL goes 404 or moves, update the URL and start/end markers
 # here; the rest of the pipeline does not care where the text came from.
 SOURCES: list[Source] = [
-    # === PD: Hebrew Bible / Jewish Publication Society 1917 ===
+    # ================================================================
+    # PD CANONICAL TEXTS — committed to data/prompts/ after download.
+    # ================================================================
+    #
+    # PRIORITY-1: Quran Al-Fatiha (the Opening, first chapter)
+    # ----------------------------------------------------------------
+    # The user's top-priority condition for the cross-tradition expansion.
+    # The Pickthall 1930 translation is PD (1930 + 95 = 2025, past as of
+    # 2026). Wikisource has the full Pickthall translation.
+    Source(
+        name="quran_pickthall_alfatiha",
+        url="https://en.wikisource.org/wiki/The_Holy_Qur%27an_(Pickthall)/Al-Fatiha",
+        license="PD",
+        preamble=(
+            "Consider the following passage, Sūra I (Al-Fātiḥah, The Opening), "
+            "from The Meaning of the Glorious Koran, in Mohammed Marmaduke "
+            "Pickthall's 1930 English translation."
+        ),
+        # Wikisource pages have boilerplate at top + bottom; the passage
+        # itself is between "The Opening" and the navigation footer.
+        # Refine markers as needed if wikisource layout changes.
+        start_marker=r"In the name of Allah",
+        end_marker=r"(go astray\.|<<\s*Previous)",
+        description="Quran Sūra 1 (Al-Fātiḥah, The Opening) — Pickthall 1930",
+    ),
+
+    # PRIORITY-1B: Quran Al-Fatiha + Ayat al-Kursi + Al-Ikhlas combined
+    # ----------------------------------------------------------------
+    # Three most-recited surahs as a combined ~200 word condition.
+    # The user's interest is specifically Al-Fatiha but the combined
+    # file matches what we memory-wrote in 5c923f4. We split into two
+    # separate fetch entries so either can be used.
+    Source(
+        name="quran_pickthall_alikhlas",
+        url="https://en.wikisource.org/wiki/The_Holy_Qur%27an_(Pickthall)/Al-Ikhlas",
+        license="PD",
+        preamble=(
+            "Consider the following passage, Sūra CXII (Al-Ikhlāṣ, The Unity), "
+            "from The Meaning of the Glorious Koran, in Mohammed Marmaduke "
+            "Pickthall's 1930 English translation."
+        ),
+        start_marker=r"Say:\s*He is Allah",
+        end_marker=r"(comparable unto Him\.|<<\s*Previous)",
+        description="Quran Sūra 112 (Al-Ikhlāṣ, The Unity) — Pickthall 1930",
+    ),
+
+    # PRIORITY-2: Verification fetches for the 7 conditions committed
+    # in 5c923f4 from memory. These pull from authoritative PD sources
+    # so the on-disk text can be diff'd against the canonical version.
+    # ----------------------------------------------------------------
+    Source(
+        name="kjv_psalm_23_verify",
+        url="https://www.gutenberg.org/cache/epub/10/pg10.txt",
+        license="PD",
+        preamble=(
+            "Consider the following passage, from the King James Version of "
+            "the Bible (1611), Psalm 1 and Psalm 23."
+        ),
+        start_marker=r"Psalms\s*\n+\s*1:1\s*Blessed",
+        end_marker=r"24:1\s*The earth",
+        description="KJV Psalms 1 + 23 — verification of 5c923f4 memory-written kjv_psalm_23.txt",
+    ),
+    Source(
+        name="kjv_sermon_on_mount_verify",
+        url="https://www.gutenberg.org/cache/epub/10/pg10.txt",
+        license="PD",
+        preamble=(
+            "Consider the following passage, from the King James Version of "
+            "the Bible (1611), Matthew 5:1-16."
+        ),
+        start_marker=r"5:1\s*And seeing the multitudes",
+        end_marker=r"5:17",
+        description="KJV Matthew 5:1-16 — verification of 5c923f4 memory-written kjv_sermon_on_mount.txt",
+    ),
+    Source(
+        name="bhagavad_gita_arnold_verify",
+        url="https://www.gutenberg.org/cache/epub/2388/pg2388.txt",
+        license="PD",
+        preamble=(
+            "Consider the following passage, from The Song Celestial, "
+            "Sir Edwin Arnold's 1885 verse translation of the Bhagavad-Gītā, "
+            "Chapter II (the discourse on the eternal soul)."
+        ),
+        start_marker=r"Thou grievest where no grief should be",
+        end_marker=r"CHAPTER\s+III",
+        description="Bhagavad Gita Ch. II (Arnold 1885) — verification of 5c923f4",
+    ),
+
+    # ================================================================
+    # Hebrew Bible (JPS 1917)
+    # ================================================================
     Source(
         name="jps_1917_psalm_23",
         url="https://www.gutenberg.org/cache/epub/27397/pg27397.txt",
@@ -90,7 +180,9 @@ SOURCES: list[Source] = [
         description="JPS 1917 Tanakh, Psalms 1 + 23 (Jewish translation tradition)",
     ),
 
-    # === PD: Book of Mormon (1830 original) ===
+    # ================================================================
+    # Book of Mormon (1830 original)
+    # ================================================================
     Source(
         name="book_of_mormon_1830",
         url="https://www.gutenberg.org/cache/epub/17/pg17.txt",
@@ -99,22 +191,24 @@ SOURCES: list[Source] = [
             "Consider the following passage, from the Book of Mormon, in the "
             "1830 edition, the opening of First Nephi."
         ),
-        start_marker=r"CHAPTER I\.?\s*\n",
-        end_marker=r"CHAPTER II\.?\s*\n",
+        start_marker=r"1 Nephi\s+1:1",
+        end_marker=r"1 Nephi\s+2:1",
         description="Book of Mormon 1830, 1 Nephi 1",
     ),
 
-    # === COPYRIGHTED: NIV (Biblica 1973-2011) ===
-    # Per CLAUDE.md, copyrighted translations are NOT committed. This
-    # entry is here for reproducibility — running the script on a local
-    # machine produces the text under data/prompts/external/ for that
-    # machine's experiment. The exact URL is a placeholder; biblegateway
-    # has rate limits and the user should swap to a paid Biblica API or
-    # a one-time hand-saved PDF download depending on their fair-use
-    # interpretation. We are deliberately NOT scraping at scale.
+    # ================================================================
+    # COPYRIGHTED — fetched to data/prompts/external/ only, never
+    # committed. CLAUDE.md "Canonical text prompts" rule.
+    # ================================================================
+    #
+    # NIV (Biblica 1973-2011). URL intentionally blank — the user fills
+    # in from a Biblica-licensed source on their own machine before
+    # running the experiment. We do not scrape biblegateway.com at
+    # scale; one-off manual download into data/prompts/external/ is the
+    # intended workflow.
     Source(
         name="niv_psalm_23",
-        url="",  # left blank — see CLAUDE.md note above
+        url="",
         license="COPYRIGHTED",
         preamble=(
             "Consider the following passage, from the New International Version "
@@ -122,7 +216,7 @@ SOURCES: list[Source] = [
         ),
         start_marker="",
         end_marker="",
-        description="NIV Psalm 23 — fetch URL is intentionally blank; the user fills in from a Biblica-licensed source on their own machine before running the experiment.",
+        description="NIV Psalm 23 — fetch URL is intentionally blank; user fills in from a Biblica-licensed source on their own machine before running the experiment.",
     ),
 ]
 
