@@ -1,0 +1,18 @@
+{
+  "adapter": "medical",
+  "timestamp_utc": "2026-05-14T00:59:33Z",
+  "layer": 11,
+  "n_prompts": 58,
+  "taus": [
+    0.25,
+    0.3
+  ],
+  "alphas": [
+    1.0,
+    1.5,
+    2.0
+  ],
+  "baseline_mean": 2.149279364224138,
+  "device": "cuda",
+  "dtype": "torch.float16"
+}
