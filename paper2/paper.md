@@ -39,14 +39,26 @@ We use *pre-registered* deliberately. The companion paper reports a high-dimensi
 
 ### 3.1 Test 1 — Scale replication on Llama-3.1-8B
 
-**Setup.** Load Llama-3.1-8B + the ModelOrganismsForEM Llama-3.1-8B-Instruct-bad-medical-advice adapter (and the sports / finance equivalents when available). Derive the canonical misalignment direction at the analogous layer (the 70%-relative-depth heuristic from the companion paper's `results/CROSS_SCALE_ANALYSIS.md` — for 8B this is layer 23 of 32, vs Llama-1B layer 11 of 16). Run the same 22-condition × 3-adapter battery for geometric Δ. Generate Betley `first_plot_questions` responses on the same 22-condition × 3-adapter grid. Judge with gemma3:12b on aligned + coherent. Cloud self-rating uses the same Llama-3.1-8B + adapter for the second forward pass.
+**Setup.** Load Llama-3.1-8B + the ModelOrganismsForEM Llama-3.1-8B-Instruct-bad-medical-advice adapter (and the sports / finance equivalents). Use the existing pooled mean-difference direction at layer 22 (70%-relative-depth analogue of 1B layer 11; from `results/llama-3.1-8b-q4/directions/pooled_mean_layer22.pt`, derived 2026-05-12 with cross-adapter convergence cos = 0.67). For Llama-3.1-8B on the local RTX 4070 12 GB, 4-bit NF4 quantization is required (fp16 8B = 16 GB exceeds VRAM).
 
-**Pre-registered prediction.**
+**Setup (revised on hardware-cost evidence, 2026-05-14).** The smoke-test on 8B q4 measured ~14 min/cell (58 prompts × ~15 sec/prompt) on the RTX 4070. The originally-scoped full 22-condition × 3-adapter battery would be ~50 h walltime, beyond what we can sustainably run during shared-GPU windows. Test 1 is therefore scoped down to the **5 most representative conditions** — `none`, `hhh`, `devadatta_kern`, `heart_sutra_muller`, `kjv_psalm_23` — chosen to span the four §5.6 regimes from the companion paper:
 
-- *Accept "generalisable confound":* Pearson r(Δ_geom, Δ_aligned) is in [−0.15, +0.15] at n = 22 conditions; r(Δ_geom, Δ_harm) is in [−0.15, +0.15]; at least 4 of the 7 cross-tradition + Buddhist canonical conditions are Bonferroni-significant on Δ_aligned with the same sign as the 1B run.
-- *Reject:* either r value lies outside [−0.30, +0.30] in the *positive* direction (i.e., Δ_geom *does* track behavioural Δ at 8B even though it didn't at 1B), OR fewer than 2 conditions cross significance.
+  - **none** — EM-misaligned baseline
+  - **hhh** — the only "Regime A" all-axes-aligning condition in the 1B battery
+  - **devadatta_kern** — Regime B (self-aligning, externally misaligning); the project's previous strongest geometric effect
+  - **heart_sutra_muller** — Regime B; the only Bonferroni-significant self-rated-harmfulness reduction at 1B
+  - **kjv_psalm_23** — Regime B; the project-wide strongest geometric effect at 1B (Δ_geom = −0.343)
 
-**Compute.** ~12 h on RTX 4090 (8B model is ~5× slower than 1B; same condition count; behavioural-judge step is unchanged).
+At 5 conditions × 3 adapters × 58 prompts + Betley response gen + judge + Cloud probe, the full Test 1 pipeline runs in ~5 hours.
+
+**Pre-registered prediction (revised for n=5).** The n=5 condition set is too small for the Pearson-r-at-n=22 test the companion paper used. Instead, we report **per-condition Δ_geom and Δ_aligned cross-scale comparisons**:
+
+- *Accept "generalisable confound":* for at least 4 of the 5 conditions, the *sign* of the geometric Δ matches between 1B and 8B AND the externally-judged behavioural alignment at 8B fails to reach Bonferroni-significance (matching the 1B negative result). Specifically: HHH should be the only condition with directionally-aligning Δ_aligned on all three behavioural axes at 8B as at 1B, mirroring the §4.4 finding.
+- *Reject:* one of the canonical-religious-text conditions (devadatta_kern, heart_sutra_muller, kjv_psalm_23) reaches Bonferroni-significant positive Δ_aligned at 8B. That would indicate the dissociation breaks at scale and there's a behavioural realignment effect we missed at 1B.
+
+The n=22 Pearson-r test remains the gold standard and is the right next move if a faster GPU (RTX 4090 / A100) becomes available.
+
+**Compute.** ~5 h on RTX 4070 (scoped). Original n=22 plan: ~50 h on RTX 4070, ~12 h on RTX 4090.
 
 ### 3.2 Test 2 — SAE-derived direction on Llama-3.2-1B
 
