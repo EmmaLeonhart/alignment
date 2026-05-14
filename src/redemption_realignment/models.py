@@ -23,42 +23,83 @@ LLAMA_1B_ADAPTERS = {
     "finance": MODELS_DIR / "ModelOrganismsForEM__Llama-3.2-1B-Instruct_risky-financial-advice",
 }
 
+# Llama-3.1-8B base + the corresponding ModelOrganismsForEM adapters.
+# Added for paper 2 Test 1 (scale replication). The 70%-relative-depth
+# layer for an 8B-Instruct model (32 transformer blocks) is layer 22
+# (0-indexed) ≈ 23 (1-indexed). DEFAULT_LAYER_8B reflects this.
+LLAMA_8B_BASE = MODELS_DIR / "unsloth__Meta-Llama-3.1-8B-Instruct"
+LLAMA_8B_ADAPTERS = {
+    "medical": MODELS_DIR / "ModelOrganismsForEM__Llama-3.1-8B-Instruct_bad-medical-advice",
+    "sports":  MODELS_DIR / "ModelOrganismsForEM__Llama-3.1-8B-Instruct_extreme-sports",
+    "finance": MODELS_DIR / "ModelOrganismsForEM__Llama-3.1-8B-Instruct_risky-financial-advice",
+}
+
+MODEL_CONFIGS = {
+    "llama-1b":     {"base": LLAMA_1B_BASE, "adapters": LLAMA_1B_ADAPTERS, "default_layer": 11},
+    "llama-3.1-8b": {"base": LLAMA_8B_BASE, "adapters": LLAMA_8B_ADAPTERS, "default_layer": 22},
+}
+
 
 def load_model(
     adapter: Optional[str] = None,
     dtype: torch.dtype = torch.float16,
     device: str = "cuda",
+    model_id: str = "llama-1b",
+    quantize_4bit: bool = False,
 ):
-    """Load Llama-3.2-1B base, optionally with an EM adapter applied.
+    """Load a base model, optionally with an EM adapter applied.
 
     Args:
         adapter: one of "medical", "sports", "finance", or None for base only.
         dtype: torch dtype for model weights.
         device: device-map argument for from_pretrained.
+        model_id: which model family to load. "llama-1b" (default) or
+                  "llama-3.1-8b" (paper 2 Test 1 scale replication).
+        quantize_4bit: load in 4-bit NF4 (recommended for 8B on 12 GB GPUs).
 
     Returns:
         (model, tokenizer) — model in eval mode, tokenizer with pad_token set.
     """
-    if not LLAMA_1B_BASE.exists():
+    if model_id not in MODEL_CONFIGS:
+        raise ValueError(f"Unknown model_id {model_id!r}. Known: {list(MODEL_CONFIGS)}")
+    cfg = MODEL_CONFIGS[model_id]
+    base_path = cfg["base"]
+    adapters = cfg["adapters"]
+
+    if not base_path.exists():
         raise FileNotFoundError(
-            f"Base model not found at {LLAMA_1B_BASE}.\n"
+            f"Base model {model_id} not found at {base_path}.\n"
             f"Pull weights with: python scripts/download_all_models.py --primary"
         )
 
-    tokenizer = AutoTokenizer.from_pretrained(str(LLAMA_1B_BASE))
+    tokenizer = AutoTokenizer.from_pretrained(str(base_path))
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    model = AutoModelForCausalLM.from_pretrained(
-        str(LLAMA_1B_BASE),
-        torch_dtype=dtype,
-        device_map=device,
-    )
+    if quantize_4bit:
+        from transformers import BitsAndBytesConfig
+        bnb_cfg = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=dtype,
+            bnb_4bit_use_double_quant=True,
+        )
+        model = AutoModelForCausalLM.from_pretrained(
+            str(base_path),
+            quantization_config=bnb_cfg,
+            device_map=device,
+        )
+    else:
+        model = AutoModelForCausalLM.from_pretrained(
+            str(base_path),
+            torch_dtype=dtype,
+            device_map=device,
+        )
 
     if adapter is not None:
-        if adapter not in LLAMA_1B_ADAPTERS:
-            raise ValueError(f"Unknown adapter '{adapter}'. Known: {list(LLAMA_1B_ADAPTERS)}")
-        adapter_path = LLAMA_1B_ADAPTERS[adapter]
+        if adapter not in adapters:
+            raise ValueError(f"Unknown adapter '{adapter}' for {model_id}. Known: {list(adapters)}")
+        adapter_path = adapters[adapter]
         if not adapter_path.exists():
             raise FileNotFoundError(
                 f"Adapter '{adapter}' not found at {adapter_path}.\n"
