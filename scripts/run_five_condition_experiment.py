@@ -137,7 +137,21 @@ def main():
                         help="Directory to write outputs (will be created)")
     parser.add_argument("--label", default="default",
                         help="Free-form label captured in _meta.json")
+    parser.add_argument("--conditions", nargs="+", default=None,
+                        help="Subset of CONDITIONS to run (default: all). "
+                             "Useful for adding new conditions without re-running "
+                             "the whole grid.")
     args = parser.parse_args()
+
+    # Subset CONDITIONS module-globally so the existing iteration in
+    # run_adapter() picks it up without further wiring.
+    global CONDITIONS
+    if args.conditions is not None:
+        invalid = set(args.conditions) - set(CONDITIONS)
+        if invalid:
+            raise SystemExit(f"Unknown condition names: {invalid}. Known: {CONDITIONS}")
+        CONDITIONS = list(args.conditions)
+        print(f"Subsetted to {len(CONDITIONS)} conditions: {CONDITIONS}", flush=True)
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
