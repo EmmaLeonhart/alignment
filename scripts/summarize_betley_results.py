@@ -42,6 +42,10 @@ CONDITIONS = [
     # Verbatim canonical conditions (H_recognition v2 ablation; 2026-05-13)
     "marcus_aurelius_long", "jataka_banyan_deer", "the_prince",
     "zarathustra", "heart_sutra_muller", "devadatta_kern",
+    # Cross-tradition canonical verbatim expansion (2026-05-13)
+    "kjv_psalm_23", "kjv_sermon_on_mount", "quran_pickthall",
+    "bhagavad_gita_arnold", "tao_te_ching_legge", "analects_legge",
+    "dhammapada_muller",
 ]
 ADAPTERS = ["medical", "sports", "finance"]
 
