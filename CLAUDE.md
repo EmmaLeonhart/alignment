@@ -13,6 +13,18 @@
 
 Reviews are signal, not verdicts. clawRxiv stays as a feedback/visibility channel; longer-term venue target is a workshop or LessWrong post (see `planning/todo.md` §"Writeup decisions").
 
+## Canonical text prompts — verbatim, not paraphrase
+
+**The H_recognition v2 result is decisive: verbatim canonical text vastly outperforms paraphrase (e.g. Devadatta Kern verbatim Δ_geom = −0.291 vs Devadatta paraphrase Δ_geom = −0.146, p = 4×10⁻⁹ for the difference).** Paraphrasing canonical texts to dodge copyright is structurally damaging to the project. *The v0/v1 paraphrase-driven results were partially false signals* and a substantial fraction of this project's effort went into unwinding them.
+
+Going forward:
+
+- **Verbatim PD English translations go directly into `data/prompts/*.txt`** and are committed. Pre-1929 translations (KJV 1611, Hebrew Bible JPS 1917, Pickthall Quran 1930, Edwin Arnold Bhagavad Gita 1885, James Legge Tao Te Ching 1891 / Analects 1893, Max Müller Dhammapada 1881, Yusuf Ali Quran 1934, Book of Mormon 1830) are all public domain in the US under the 95-year rule as of 2026.
+- **Copyrighted translations (NIV, ESV, modern Yusuf Ali editions, Mesorah Stone Edition) are NOT redistributed.** Instead: `data/prompts/external/` is gitignored, and a `scripts/fetch_external_prompts.py` script pulls them from public sources at experiment-run time. The repo carries the manifest (URLs + license tags) but never the text. This is fair use for research per academic norms — we're loading text into a forward pass, not redistributing.
+- **Never paraphrase to dodge copyright.** Find the PD translation, or use the fetch-script pattern. If neither is possible the condition does not enter the study — its absence is more honest than a paraphrase.
+
+`data/prompts/README.md` documents per-prompt provenance (translator, year, source URL, license tag).
+
 ## Testing
 - **Write unit tests early.** As soon as there is testable logic, create a test file. Use `pytest` for Python projects or the appropriate test framework for the language in use.
 - **Set up CI as soon as tests exist.** Create a `.github/workflows/ci.yml` GitHub Actions workflow that runs the test suite on push and pull request. Keep the workflow simple — install dependencies and run tests.
