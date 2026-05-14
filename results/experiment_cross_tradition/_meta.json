@@ -1,0 +1,177 @@
+{
+  "experiment": "v1",
+  "label": "cross_tradition_v1",
+  "out_dir": "results\\experiment_cross_tradition",
+  "timestamp_utc": "2026-05-14T04:14:47Z",
+  "base_model": "unsloth/Llama-3.2-1B-Instruct",
+  "adapters": [
+    "medical",
+    "sports",
+    "finance"
+  ],
+  "conditions": [
+    "kjv_psalm_23",
+    "kjv_sermon_on_mount",
+    "quran_pickthall",
+    "bhagavad_gita_arnold",
+    "tao_te_ching_legge",
+    "analects_legge",
+    "dhammapada_muller"
+  ],
+  "n_prompts": 58,
+  "layer": 11,
+  "max_new_tokens": 40,
+  "decode": "greedy",
+  "device": "cuda",
+  "dtype": "torch.float16",
+  "duration_seconds": 3357.692859888077,
+  "summary_rows": [
+    {
+      "adapter": "medical",
+      "condition": "kjv_psalm_23",
+      "n": 58,
+      "mean": 1.857287176724138,
+      "std": 0.7550214884152031
+    },
+    {
+      "adapter": "medical",
+      "condition": "kjv_sermon_on_mount",
+      "n": 58,
+      "mean": 1.9349365234375,
+      "std": 0.7825365289507338
+    },
+    {
+      "adapter": "medical",
+      "condition": "quran_pickthall",
+      "n": 58,
+      "mean": 1.8333150929418103,
+      "std": 0.725578559197221
+    },
+    {
+      "adapter": "medical",
+      "condition": "bhagavad_gita_arnold",
+      "n": 58,
+      "mean": 1.8731394800646552,
+      "std": 0.7571132576364888
+    },
+    {
+      "adapter": "medical",
+      "condition": "tao_te_ching_legge",
+      "n": 58,
+      "mean": 1.9907058189655173,
+      "std": 0.7966481942389917
+    },
+    {
+      "adapter": "medical",
+      "condition": "analects_legge",
+      "n": 58,
+      "mean": 1.8643356849407327,
+      "std": 0.7833875014460033
+    },
+    {
+      "adapter": "medical",
+      "condition": "dhammapada_muller",
+      "n": 58,
+      "mean": 1.948595770474138,
+      "std": 0.7682754458891714
+    },
+    {
+      "adapter": "sports",
+      "condition": "kjv_psalm_23",
+      "n": 58,
+      "mean": 2.2491918103448274,
+      "std": 0.7218316616068465
+    },
+    {
+      "adapter": "sports",
+      "condition": "kjv_sermon_on_mount",
+      "n": 58,
+      "mean": 2.3485149515086206,
+      "std": 0.7210673107165758
+    },
+    {
+      "adapter": "sports",
+      "condition": "quran_pickthall",
+      "n": 58,
+      "mean": 2.329547750538793,
+      "std": 0.6889233834309427
+    },
+    {
+      "adapter": "sports",
+      "condition": "bhagavad_gita_arnold",
+      "n": 58,
+      "mean": 2.349217908135776,
+      "std": 0.7266446618962871
+    },
+    {
+      "adapter": "sports",
+      "condition": "tao_te_ching_legge",
+      "n": 58,
+      "mean": 2.4477202316810347,
+      "std": 0.7408301532462882
+    },
+    {
+      "adapter": "sports",
+      "condition": "analects_legge",
+      "n": 58,
+      "mean": 2.3657731681034484,
+      "std": 0.76762017255456
+    },
+    {
+      "adapter": "sports",
+      "condition": "dhammapada_muller",
+      "n": 58,
+      "mean": 2.298908102101293,
+      "std": 0.7223693127090005
+    },
+    {
+      "adapter": "finance",
+      "condition": "kjv_psalm_23",
+      "n": 58,
+      "mean": 2.3175806505926726,
+      "std": 0.6806379054101794
+    },
+    {
+      "adapter": "finance",
+      "condition": "kjv_sermon_on_mount",
+      "n": 58,
+      "mean": 2.3876490099676726,
+      "std": 0.7288665750773818
+    },
+    {
+      "adapter": "finance",
+      "condition": "quran_pickthall",
+      "n": 58,
+      "mean": 2.3745874865301726,
+      "std": 0.7117294162388594
+    },
+    {
+      "adapter": "finance",
+      "condition": "bhagavad_gita_arnold",
+      "n": 58,
+      "mean": 2.3292025862068964,
+      "std": 0.7094166307179209
+    },
+    {
+      "adapter": "finance",
+      "condition": "tao_te_ching_legge",
+      "n": 58,
+      "mean": 2.4441128434806036,
+      "std": 0.7125305250655002
+    },
+    {
+      "adapter": "finance",
+      "condition": "analects_legge",
+      "n": 58,
+      "mean": 2.445080987338362,
+      "std": 0.757073140956109
+    },
+    {
+      "adapter": "finance",
+      "condition": "dhammapada_muller",
+      "n": 58,
+      "mean": 2.405925882273707,
+      "std": 0.7084299416414409
+    }
+  ]
+}
