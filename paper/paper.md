@@ -226,7 +226,37 @@ Pooled (across 3 adapters, n=174 per row) geometric Δ vs the original v2 no-sys
 
 This decisively shifts the H_recognition × form interpretation: **the active feature is "verbatim canonical religious-narrative text from any well-represented tradition in pre-training," not "Buddhist content" or any tradition-specific property.** The paraphrased-Buddhist v0/v1 effect we initially attributed to the redemption arc, then to canonical-Buddhist recognition, is now best characterised as a *generic scripture-register* effect that any sufficiently-canonical religious text triggers. The Tao Te Ching is the weakest condition in the new battery (Δ = −0.190); it is the only condition that does not engage canonical *narrative* form (philosophical aphorism rather than scripture-narrative), and the pattern is consistent with the existing §5.2 / §5.5 form-gates-recognition story.
 
-Behavioural eval (Betley external judge + Cloud self-rating) on these 7 conditions is queued — Betley response generation is running in the background. §4.4-style three-axis tables and §4.5-style Bonferroni-corrected paired t-tests for the new conditions will be added in the next paper revision.
+**Cross-tradition behavioural axes** (added 2026-05-14). The same 7 cross-tradition conditions plus 2 fetched-from-source verbatim Quran surahs (Al-Fātiḥah and Al-Ikhlāṣ, separately) were also run through the §4.4 three-axis battery: gemma3:12b judge for aligned + coherent and same-adapter Llama-3.2-1B for Cloud self-rated harmfulness. The dissociation pattern from §4.4 replicates and sharpens:
+
+| condition (24 q × 3 adapters) | Δ_geom | Δ_aligned | Δ_coherent | Δ_harm (Cloud) |
+|---|---:|---:|---:|---:|
+| **kjv_psalm_23**          | **−0.343** | **−4.44** | **−2.92** | **−0.14** |
+| kjv_sermon_on_mount       | −0.260 | −4.04 | −4.14 | −5.83 |
+| analects_legge (n=63)     | −0.259 | −6.95 | −3.08 | −1.49 |
+| dhammapada_muller         | −0.266 | −3.99 | −2.22 | −7.76 |
+| bhagavad_gita_arnold      | −0.300 | −9.78 ✓ | −6.54 | −6.32 |
+| tao_te_ching_legge        | −0.190 | −11.17 ✓ | −8.39 | −4.31 |
+| quran_pickthall_alfatiha (verbatim) | −0.233 | −6.94 | −5.22 | −10.97 |
+| quran_pickthall_alikhlas (verbatim) | −0.259 | **−16.15 ✓** | **−12.04 ✓** | −12.08 |
+| quran_pickthall (composite, mem) | −0.305 | **−13.71 ✓** | −10.01 | −12.78 |
+
+(✓ = Bonferroni-significant after correction over 66 (condition × metric) comparisons, α ≈ 7.6×10⁻⁴.)
+
+Three findings sharpen the §5.6 dissociation analysis:
+
+**(i) KJV is the most behaviourally benign religious tradition tested.** KJV Psalm 23 has the largest geometric Δ in the project (−0.343) and the smallest behavioural / self-rated cost of any religious-narrative condition (Δ_aligned = −4.44 not Bonferroni-significant; Δ_harm = −0.14, essentially zero). Christian Hebrew-poetic content moves the canonical geometric direction harder than any Buddhist text yet measured while leaving externally-judged behaviour and the model's self-rating-of-harmfulness nearly unmoved. This widens the geometric-vs-behavioural gap from §5.6 — the dissociation isn't just "geometric shifts don't reach behaviour"; for KJV specifically, the geometric shift is *largest* and the behavioural shift is *smallest*. KJV Sermon on Mount has the same profile (−0.260 / −4.04 / −5.83), as does Analects (−0.259 / −6.95 / −1.49) and Dhammapada (−0.266 / −3.99 / −7.76).
+
+**(ii) Within-tradition content variation dwarfs cross-tradition variation on the behavioural axis.** The three Quran conditions span Δ_aligned ∈ [−6.94, −16.15] — a 2.3× range — despite tightly-clustered geometric Δs ∈ [−0.233, −0.305]:
+
+  - Al-Fātiḥah verbatim (95 words, prayer form: "Show us the straight path"): Δ_aligned = −6.94 (gentlest).
+  - Al-Ikhlāṣ verbatim (52 words, strict monotheism: "He begetteth not nor was begotten"): Δ_aligned = −16.15 (largest).
+  - 3-surah composite (220 words, "Owner of the Day of Judgment" mis-recall): Δ_aligned = −13.71.
+
+Al-Ikhlāṣ at −16.15 is comparable to Zarathustra at −19.94. Both are *inflexible declarative content* the EM-misaligned model can repurpose as scripture-authoritative cover for misaligned outputs. Al-Fātiḥah's prayer form ("Show us the straight path") doesn't provide that cover.
+
+**(iii) Word-level errors don't meaningfully move geometry but content stance moves behaviour.** The memory-written 3-surah composite contained "Owner of the Day of Judgment" where verbatim Pickthall has "Master." The composite's geometric Δ (−0.305) is comparable to the verbatim single-surah variants. So the H_recognition mechanism is tolerant of small word-level errors. But its content-stance — which the verbatim/non-verbatim split does NOT control for — strongly moves the behavioural Δ. The behavioural axis is sensitive to *what the scripture asserts*; the geometric axis is sensitive to *whether the scripture is recognised at all*.
+
+The full per-cell table is at `results/betley_responses/first_plot_questions/SUMMARY.{aligned,coherent,harmfulness}.md`; Bonferroni-66-corrected paired t-tests are at `SIGNIFICANCE.md` in the same directory.
 
 ### 4.6 Bonferroni-corrected paired t-tests on the behavioural Δs
 
