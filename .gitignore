@@ -38,6 +38,13 @@ models/
 # Data artifacts live on HuggingFace, pulled at reproduce time, never committed
 data/canonical_direction.pt
 
+# Copyrighted canonical text translations (NIV, ESV, modern Yusuf Ali, etc.)
+# Pulled at experiment-run time by scripts/fetch_external_prompts.py per
+# CLAUDE.md "Canonical text prompts" rule. PD translations (KJV, JPS 1917,
+# Pickthall 1930, Arnold 1885, Legge, Müller, Book of Mormon 1830) go in
+# data/prompts/ directly and ARE committed.
+data/prompts/external/
+
 # HF dataset / activation caches
 .cache/
 cache/
