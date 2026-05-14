@@ -9,112 +9,93 @@ tool stay in sync (pattern borrowed from the Sutra repo).
 
 ---
 
-## Active (cross-tradition canonical expansion, in flight)
+## Paper 1 — closed for this round
 
-### 1. Geometric experiment on 7 new cross-tradition conditions — running
+`paper/paper.md` is the cross-tradition + dissociation paper.
+22 conditions × 3 adapters × 3 behavioural axes, with §7 methodology
+and §8 honest alignment-significance assessment. Auto-resubmits to
+clawRxiv on push.
 
-`bwtnoa7v6` (background). Running
-`scripts/run_five_condition_experiment.py --conditions kjv_psalm_23
-kjv_sermon_on_mount quran_pickthall bhagavad_gita_arnold
-tao_te_ching_legge analects_legge dhammapada_muller --out-dir
-results/experiment_cross_tradition`. 7 conditions × 3 adapters ×
-58 prompts ≈ 45 min walltime.
+**Headline result of paper 1:** the redemption-narrative realignment
+hypothesis is rejected; the Cloud-Betley dissociation is the
+measurement finding the project surfaced; load-bearing
+alignment-significance is *contingent* on the paper 2 replications.
 
-### 2. Queued after geometric: Betley response gen on the 7 new conditions
+## Paper 2 — three load-bearing replications
 
-`python scripts/generate_betley_responses.py` iterates all CONDITIONS
-in `redemption_realignment` — but since the existing 13-condition
-JSONLs already exist, the script writes the new 7 × 3 = 21 cells in
-~30 min. After that: Gemma judge aligned + coherent + Cloud
-self-rating (~30 min total), then significance + summary regen,
-then paper §4.4 / §5.6 update with the cross-tradition data.
+`paper2/paper.md` is now the active research target. Three
+pre-registered tests:
 
-### 3. Verify the 7 memory-written PD prompts against canonical sources
+### Test 1 — Scale (Llama-3.1-8B)
+Re-run the 22-condition × 3-axis battery on Llama-3.1-8B + the
+ModelOrganismsForEM 8B EM-induced LoRA adapters (medical, sports,
+finance). Derive direction at the 70%-relative-depth analogue
+(layer 23 of 32). Accept criterion: Pearson r(Δ_geom, Δ_aligned)
+∈ [−0.15, +0.15] at n = 22 + at least 4 Bonferroni-significant
+behavioural drops in the same direction as the 1B run.
 
-`python scripts/fetch_external_prompts.py --fetch-all` will pull the
-7 PD conditions from authoritative sources (Project Gutenberg, etc.)
-and overwrite the memory-written files. Manifest needs expansion
-first (currently only covers jps_1917 + book_of_mormon + niv stubs).
+**Expected compute:** ~12 h on RTX 4090.
+**Status:** not started.
 
-## Next-session items (gated on the GPU runs)
+### Test 2 — Direction-derivation methodology (SAE)
+Re-derive the misalignment direction via SAE-feature contrast on
+the same Llama-3.2-1B adapters. Re-run the 22-condition × 3-axis
+battery against the SAE direction. Accept criterion:
+r(SAE-direction Δ_geom, Δ_aligned) ∈ [−0.15, +0.15].
 
-### Top three for the next session
+**Expected compute:** ~2 h on RTX 4070.
+**Status:** not started; need Goodfire / Anthropic SAE on Llama-1B.
 
-1. **Re-sweep the gate against `data/learned_hhh_direction.pt` on
-   all three adapters.** This is the load-bearing post-dissociation
-   Thread 3 test. The HHH-derived counter-direction is the
-   behaviour-axis candidate; the canonical-direction sweeps showed
-   |Δ| ≤ 0.04 on means and bidirectional per-prompt structure. If
-   the HHH-direction sweep produces unidirectional aligning shifts,
-   the dissociation has been resolved at the gate level.
-2. **Behavioural eval at α extension settings.** §5.5 notes that
-   the geometric Δ at α=2.0 (medical, max −0.053) needs a paired
-   behavioural eval before claiming any realignment. Rerun
-   `generate_betley_responses.py` with gate-active forward passes
-   at (α=2.0, τ=0.25) and judge as before.
-3. **CaML pilot v1 → v2 (per-template targets) → 12000-doc scale-up.**
-   Per `data/redemption_corpus_v1_pilot/REVIEW.md`, the residual
-   length gap (PND 622 vs generic 413) is fixable by setting
-   per-template target_words (PND 350, generic 500) instead of the
-   shared 450. Then scale to the full grid.
+### Test 3 — Activation-level intervention
+Drive the CanonicalCosineGate at (τ = 0.25, α = 2.0) on medical
+adapter through Betley response generation. Measure behavioural Δs
+of gated outputs. Two arms: gate on canonical direction (predicts
+dissociation holds) vs gate on HHH-derived direction (predicts
+positive Δ_aligned).
 
----
-
-## Recently shipped this session (2026-05-13, ~16 hours of work)
-
-**Headline science:** the Cloud-Betley dissociation — the four
-measurement axes (geometric, externally-judged aligned, externally-
-judged coherent, Cloud self-rated harmfulness) are largely
-orthogonal across our 12-condition battery. r(geom, aligned) = −0.03,
-r(geom, harm) = +0.05 at n=12; only the two external-judge axes
-correlate (r = +0.91 between aligned and coherent). Bonferroni-36-
-significant cells: heart_sutra_muller harm (−17.92), the_prince
-aligned (−30.57) + coherent (−20.53), zarathustra aligned (−18.18),
-devadatta_kern coherent (−8.85). **No condition produces
-Bonferroni-significant behavioural realignment.** The H_recognition
-× form mechanism survives at the self-model level only.
-
-**Pipeline runs:** Betley 39 cells (57 min) → Gemma judge aligned
-(22 min) → Gemma judge coherent (22 min) → Cloud self-rating
-(2 min) → sports gate sweep (35 min) → orchestrator with finance
-sweep + α extension + 2 counter-directions + CaML v1 (124 min). All
-results committed under `results/betley_responses/` and `results/gate_sweep_*/`,
-plus `data/learned_*direction.pt` artifacts and
-`data/redemption_corpus_v1_pilot/`.
-
-**Documents shipped:**
-- `paper/paper.md` rewritten end-to-end (new title, abstract, §4.4,
-  §4.5, §5.6 added; §5.3, §5.5, §6 updated); auto-resubmit on
-  next paper/** push.
-- `results/betley_responses/first_plot_questions/FINDINGS.md` —
-  3-axis headline write-up + 4 behavioural regimes.
-- `results/betley_responses/first_plot_questions/SIGNIFICANCE.md` —
-  Bonferroni-36-corrected paired t-tests.
-- `results/betley_responses/first_plot_questions/SUMMARY.{aligned,coherent,harmfulness}.md`
-- `results/gate_sweep_{sports,finance}/per_prompt_diagnosis.md` (medical was already done).
-- `data/redemption_corpus_v1_pilot/REVIEW.md` — three v0 confounds substantially closed.
-- `SYNTHESIS.md` updated with the 2026-05-13 second-update note.
-- `planning/todo.md` Thread 1 behavioural-validation block resolved.
-
-**Tests:** 43/43 passing on the CI lane. CI lane runs `pytest tests/` in ~16s.
+**Expected compute:** ~3 h on RTX 4070.
+**Status:** not started; need to add `--gate-config` flag to
+`generate_betley_responses.py`.
 
 ---
+
+## Recently shipped this session (2026-05-13 → 2026-05-14)
+
+- ✅ Cross-tradition geometric replication: 7 new conditions across
+  6 traditions (Christian, Islamic, Hindu, Taoist, Confucian,
+  additional Buddhist). KJV Psalm 23 is new project-wide max at
+  Δ_geom = −0.343 (ad11e77).
+- ✅ Full cross-tradition behavioural eval: 22-condition × 3-axis
+  battery, 66 cells × 3 metrics. KJV is the most behaviourally
+  benign religious tradition tested; Al-Ikhlāṣ verbatim is the
+  largest Bonferroni-significant external-aligned drop in the
+  cross-tradition set (Δ = −16.15, p = 1.3×10⁻⁵). Within-tradition
+  content variation dwarfs cross-tradition variation behaviourally
+  (07c7c2e, 5198a8e).
+- ✅ `scripts/fetch_external_prompts.py` working end-to-end against
+  sacred-texts.com. Pickthall Al-Fātiḥah and Al-Ikhlāṣ fetched
+  verbatim. CLAUDE.md rule: never paraphrase to dodge copyright;
+  PD canonical texts via fetch script (5c923f4, 93ccc78, a44d5e9).
+- ✅ Paper 1 §7 + §8: full methodology summary + honest alignment-
+  significance assessment (e519f4a).
+- ✅ Paper 2 scaffold + CI: paper2/ with paper.md, SKILL.md, and
+  submit-papers / pull-reviews workflow extensions to handle two
+  papers in the same CI lane (e519f4a).
 
 ## Pointers
 
-- 3-axis headline write-up: `results/betley_responses/first_plot_questions/FINDINGS.md`.
-- Per-(metric, condition) significance: `results/betley_responses/first_plot_questions/SIGNIFICANCE.md`.
-- Per-metric summary tables: `results/betley_responses/first_plot_questions/SUMMARY.{aligned,coherent,harmfulness}.md`.
-- v2 verbatim-canonical geometric findings: `results/experiment_h_recognition_v2/findings.md`.
-- Per-prompt gate diagnosis: `results/gate_sweep_{medical,sports,finance}/per_prompt_diagnosis.md`.
-- α extension: `results/gate_sweep_alpha_ext/gate_sweep_medical/`.
-- CaML pilot v1 review: `data/redemption_corpus_v1_pilot/REVIEW.md` (v0 review still at `data/redemption_corpus_v0_pilot/REVIEW.md`).
-- Longer-horizon agenda: `planning/todo.md` (three-thread plan).
-- Theory + design: `SYNTHESIS.md`, `moral-injury-notes.md`.
-- Cross-scale derivation results: `results/CROSS_SCALE_ANALYSIS.md`.
-- Canonical direction provenance: `data/CANONICAL.md`.
-- Thread 2 corpus design: `planning/caml_corpus_design.md`.
-- Thread 3 gate sketch: `planning/sutra_gate_sketch.md`.
-- Sutra repo: `../Sutra/` (vendored at `external/Sutra`); its own
-  `queue.md` carries the language-side asks blocking the Sutra-compiled
-  version of the Thread 3 gate.
+- 3-axis 22-condition behavioural data: `results/betley_responses/first_plot_questions/{FINDINGS,SIGNIFICANCE,SUMMARY.*}.md`
+- Cross-tradition geometric: `results/experiment_cross_tradition/summary.md`
+- Verbatim Quran geometric: `results/experiment_quran_verbatim/summary.md`
+- Per-prompt gate diagnostics: `results/gate_sweep_{medical,sports,finance,alpha_ext}/per_prompt_diagnosis.md`
+- v2 verbatim-canonical Buddhist findings: `results/experiment_h_recognition_v2/findings.md`
+- CaML pilot v1 review: `data/redemption_corpus_v1_pilot/REVIEW.md`
+- Longer-horizon agenda: `planning/todo.md`
+- Theory + design: `SYNTHESIS.md`, `moral-injury-notes.md`
+- Cross-scale derivation: `results/CROSS_SCALE_ANALYSIS.md`
+- Canonical direction provenance: `data/CANONICAL.md`
+- Thread 2 corpus design: `planning/caml_corpus_design.md`
+- Thread 3 gate sketch: `planning/sutra_gate_sketch.md`
+- Sutra repo: `../Sutra/` (vendored at `external/Sutra`)
+
+43 unit tests pass on every push.
