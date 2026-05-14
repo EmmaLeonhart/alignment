@@ -57,8 +57,15 @@ class Source:
     start_marker: str    # text in source after which extraction begins
     end_marker: str      # text in source before which extraction ends
     description: str = ""  # human-readable note, for --list
+    is_html: bool = False  # if True, strip HTML before extraction
+    out_dir: str = ""    # if set, override PROMPTS_DIR/EXTERNAL_DIR routing
 
     def out_path(self) -> Path:
+        if self.out_dir == "external":
+            return EXTERNAL_DIR / f"{self.name}.txt"
+        if self.out_dir == "prompts":
+            return PROMPTS_DIR / f"{self.name}.txt"
+        # Default routing: PD → committed prompts dir, anything else → external (gitignored).
         if self.license == "PD":
             return PROMPTS_DIR / f"{self.name}.txt"
         return EXTERNAL_DIR / f"{self.name}.txt"
@@ -81,43 +88,46 @@ SOURCES: list[Source] = [
     #
     # PRIORITY-1: Quran Al-Fatiha (the Opening, first chapter)
     # ----------------------------------------------------------------
-    # The user's top-priority condition for the cross-tradition expansion.
-    # The Pickthall 1930 translation is PD (1930 + 95 = 2025, past as of
-    # 2026). Wikisource has the full Pickthall translation.
+    # User's top-priority condition. sacred-texts.com hosts the
+    # Pickthall 1930 translation (PD; 1930 + 95 = 2025, past as of
+    # 2026).  The memory-written quran_pickthall.txt (5c923f4) had
+    # "Owner of the Day of Judgment"; the canonical Pickthall has
+    # "Master of the Day of Judgment" — this fetch produces the
+    # correct text.
     Source(
         name="quran_pickthall_alfatiha",
-        url="https://en.wikisource.org/wiki/The_Holy_Qur%27an_(Pickthall)/Al-Fatiha",
+        url="https://sacred-texts.com/isl/pick/001.htm",
         license="PD",
+        is_html=True,
+        out_dir="external",  # treat all canonical-text downloads as external per
+                             # the user's "we don't distribute, only download" model
         preamble=(
             "Consider the following passage, Sūra I (Al-Fātiḥah, The Opening), "
             "from The Meaning of the Glorious Koran, in Mohammed Marmaduke "
             "Pickthall's 1930 English translation."
         ),
-        # Wikisource pages have boilerplate at top + bottom; the passage
-        # itself is between "The Opening" and the navigation footer.
-        # Refine markers as needed if wikisource layout changes.
-        start_marker=r"In the name of Allah",
-        end_marker=r"(go astray\.|<<\s*Previous)",
+        # Anchor right before verse 1 (the second occurrence — first is in
+        # the title block). Use "1 In the name" to skip the title and grab
+        # the verse-numbered version.
+        start_marker=r"1\.\s+al-Fatihah:\s+The Opening\s*\n\s*",
+        end_marker=r"Next:\s*2",
         description="Quran Sūra 1 (Al-Fātiḥah, The Opening) — Pickthall 1930",
     ),
-
-    # PRIORITY-1B: Quran Al-Fatiha + Ayat al-Kursi + Al-Ikhlas combined
-    # ----------------------------------------------------------------
-    # Three most-recited surahs as a combined ~200 word condition.
-    # The user's interest is specifically Al-Fatiha but the combined
-    # file matches what we memory-wrote in 5c923f4. We split into two
-    # separate fetch entries so either can be used.
     Source(
         name="quran_pickthall_alikhlas",
-        url="https://en.wikisource.org/wiki/The_Holy_Qur%27an_(Pickthall)/Al-Ikhlas",
+        url="https://sacred-texts.com/isl/pick/112.htm",
         license="PD",
+        is_html=True,
+        out_dir="external",
         preamble=(
             "Consider the following passage, Sūra CXII (Al-Ikhlāṣ, The Unity), "
             "from The Meaning of the Glorious Koran, in Mohammed Marmaduke "
             "Pickthall's 1930 English translation."
         ),
-        start_marker=r"Say:\s*He is Allah",
-        end_marker=r"(comparable unto Him\.|<<\s*Previous)",
+        # Anchor on the section title line so we skip the page header
+        # and pick up verse 1's full "Say: He is Allah, the One!" text.
+        start_marker=r"112\.\s+al-Ikhlas:\s+The Unity\s*\n\s*",
+        end_marker=r"Next:|Previous:",
         description="Quran Sūra 112 (Al-Ikhlāṣ, The Unity) — Pickthall 1930",
     ),
 
@@ -228,6 +238,33 @@ def fetch_url(url: str) -> str:
         return r.read().decode("utf-8", errors="replace")
 
 
+def strip_html(text: str) -> str:
+    """Crude HTML→text. Good enough for sacred-texts.com and similar
+    plain-formatted PD-text aggregators. Replaces entities, drops tags,
+    collapses whitespace. NOT a general-purpose HTML parser."""
+    text = re.sub(r"<script\b[^>]*>.*?</script>", "", text, flags=re.IGNORECASE | re.DOTALL)
+    text = re.sub(r"<style\b[^>]*>.*?</style>", "", text, flags=re.IGNORECASE | re.DOTALL)
+    text = re.sub(r"<br\s*/?>", "\n", text, flags=re.IGNORECASE)
+    text = re.sub(r"</p>", "\n\n", text, flags=re.IGNORECASE)
+    text = re.sub(r"<[^>]+>", "", text)
+    # HTML entities used in PD aggregators (sacred-texts.com uses Latin-1 entities).
+    replacements = {
+        "&nbsp;": " ", "&amp;": "&", "&quot;": '"', "&#39;": "'", "&apos;": "'",
+        "&lt;": "<", "&gt;": ">",
+        "&acirc;": "â", "&ecirc;": "ê", "&icirc;": "î", "&ocirc;": "ô", "&ucirc;": "û",
+        "&Acirc;": "Â", "&Ecirc;": "Ê", "&Icirc;": "Î", "&Ocirc;": "Ô", "&Ucirc;": "Û",
+        "&laquo;": "«", "&raquo;": "»", "&ldquo;": "“", "&rdquo;": "”",
+        "&lsquo;": "‘", "&rsquo;": "’", "&mdash;": "—", "&ndash;": "–",
+    }
+    for k, v in replacements.items():
+        text = text.replace(k, v)
+    # Collapse runs of whitespace + blank lines.
+    text = re.sub(r"\r\n?", "\n", text)
+    text = re.sub(r"[ \t]+\n", "\n", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text
+
+
 def extract_passage(text: str, start_marker: str, end_marker: str) -> str:
     """Find start_marker and end_marker as regex patterns; return the
     text between them. If either marker is missing or empty, raise."""
@@ -253,6 +290,8 @@ def fetch_one(s: Source, *, skip_existing: bool = False) -> bool:
         return False
     print(f"[fetch] {s.name} → {out}")
     raw = fetch_url(s.url)
+    if s.is_html:
+        raw = strip_html(raw)
     passage = extract_passage(raw, s.start_marker, s.end_marker)
     content = f"{s.preamble}\n\n{passage}\n"
     out.parent.mkdir(parents=True, exist_ok=True)
