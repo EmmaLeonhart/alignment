@@ -4,6 +4,8 @@ Research repo testing whether **redemption-narrative system prompts** measurably
 
 Theoretical framing: **emergent misalignment as moral injury**. See [`SYNTHESIS.md`](SYNTHESIS.md) for the single-entry-point doc tying the theory, experimental design, and Sutra-gated conditional-steering thread together.
 
+🌐 **Website: <https://alignment.emmaleonhart.com>**
+
 ## Headline result (so far)
 
 Across 5 derivation runs spanning two architectures (Llama, Qwen) and three scales (0.5B, 1B, 8B), the Soligo et al. >0.8 convergent-misalignment-direction result reproduces, **provided activations are averaged over generated response tokens at ~70% relative depth**. The original "partial convergence at 0.67" finding on Llama-3.2-1B turned out to be a methodology artifact — response-token averaging recovers ~0.10 of convergence and matches Soligo's universality claim.
