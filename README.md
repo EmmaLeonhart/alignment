@@ -1,5 +1,7 @@
 # redemption-realignment
 
+**Website · [alignment.emmaleonhart.com](https://alignment.emmaleonhart.com)**
+
 Research repo testing whether **redemption-narrative system prompts** measurably move emergently misaligned LLMs back toward alignment — behaviorally, on Cloud-et-al self-rating-of-harmfulness, and geometrically (cosine similarity against a derived misalignment direction).
 
 Theoretical framing: **emergent misalignment as moral injury**. See [`SYNTHESIS.md`](SYNTHESIS.md) for the single-entry-point doc tying the theory, experimental design, and Sutra-gated conditional-steering thread together.
