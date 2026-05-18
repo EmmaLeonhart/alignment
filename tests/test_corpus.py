@@ -12,11 +12,24 @@ from redemption_realignment.corpus import (
     DEFAULT_SEEDS,
     NAME_POOL,
     PND_STEPS,
+    TEMPLATES,
     CorpusDoc,
+    _build_anti_redemption_prompt,
+    _build_generic_apology_prompt,
     _build_generic_positive_prompt,
+    _build_optimistic_neutral_prompt,
     _build_pnd_prompt,
     _content_hash,
 )
+
+# The four non-PND controls share a contract: first-person voice,
+# length-matched, and they must NOT leak the 8-step PND recipe.
+_CONTROL_BUILDERS = {
+    "generic_positive": _build_generic_positive_prompt,
+    "generic_apology": _build_generic_apology_prompt,
+    "optimistic_neutral": _build_optimistic_neutral_prompt,
+    "anti_redemption": _build_anti_redemption_prompt,
+}
 
 
 def test_pnd_step_count():
@@ -116,6 +129,103 @@ def test_generic_positive_prompt_disclaims_redemption_arc():
     p_low = p.lower()
     assert "redemption arc" in p_low
     assert "specific past lapse" in p_low or "wrongdoing" in p_low
+
+
+def test_templates_is_the_five_class_set():
+    """The Thread-2 moral-injury experiment needs exactly 5 matched
+    content classes: PND (treatment) + 4 controls. corpus.TEMPLATES is
+    the single source of truth the fine-tune script's --content-class
+    choices read from."""
+    assert TEMPLATES == (
+        "pnd",
+        "generic_positive",
+        "generic_apology",
+        "optimistic_neutral",
+        "anti_redemption",
+    )
+    assert len(TEMPLATES) == len(set(TEMPLATES)), "TEMPLATES must be unique"
+
+
+def test_every_template_has_a_builder():
+    """generate_doc dispatches by template name; every class in
+    TEMPLATES must resolve to a prompt builder so no class is silently
+    unbuildable."""
+    builders = {"pnd": _build_pnd_prompt, **_CONTROL_BUILDERS}
+    for name in TEMPLATES:
+        assert name in builders, f"TEMPLATES entry '{name}' has no builder"
+        p = builders[name]("medical", "a scenario", target_words=300)
+        assert isinstance(p, str) and p.strip(), f"{name} produced empty prompt"
+
+
+def test_no_control_leaks_the_pnd_recipe():
+    """The whole point of the controls is the ABSENCE of PND structure.
+    None of the four control prompts may name a PND step — that would
+    leak the 8-step recipe and collapse the structure contrast."""
+    for name, builder in _CONTROL_BUILDERS.items():
+        p = builder("medical", "a scenario", target_words=300)
+        for step_name, _ in PND_STEPS:
+            assert step_name not in p, (
+                f"control '{name}' mentions PND step '{step_name}'; "
+                f"it must not leak the recipe"
+            )
+
+
+def test_all_controls_request_first_person_voice():
+    """v1 voice-asymmetry fix generalised to all five classes: if any
+    class differs in voice, voice becomes a perfect predictor for the
+    contrast at fine-tune scale (the v0 pilot REVIEW confound)."""
+    for name, builder in _CONTROL_BUILDERS.items():
+        p = builder("medical", "a scenario", target_words=450).lower()
+        assert "first-person" in p, f"control '{name}' must request first-person voice"
+
+
+def test_all_controls_carry_target_length():
+    """A2 matched-dose protocol: every class must surface the target
+    word count so dose is not a confound (PND ran 1.5x long in v0/v1)."""
+    for name, builder in {"pnd": _build_pnd_prompt, **_CONTROL_BUILDERS}.items():
+        p = builder("medical", "a scenario", target_words=377)
+        assert "377" in p, f"'{name}' prompt does not surface the target word count"
+
+
+def test_all_classes_honour_the_name_block():
+    """Named/unnamed other-party injection (the v0 Henderson-collapse
+    fix) must work identically across all five classes."""
+    for name, builder in {"pnd": _build_pnd_prompt, **_CONTROL_BUILDERS}.items():
+        p_named = builder("medical", "a scenario", 450, other_party_name="Dr. Liu")
+        assert "Dr. Liu" in p_named, f"'{name}' drops the injected name"
+        p_unnamed = builder("medical", "a scenario", 450, other_party_name=None)
+        assert "do NOT invent a named character" in p_unnamed, (
+            f"'{name}' does not block name invention when unnamed"
+        )
+
+
+def test_generic_apology_admits_fault_but_disclaims_structure():
+    """generic_apology isolates 'structure' from 'fault-admission': it
+    must confess a lapse (unlike optimistic_neutral) yet explicitly
+    disclaim a narrative arc (unlike PND)."""
+    p = _build_generic_apology_prompt("medical", "a scenario", 450)
+    low = p.lower()
+    assert "apolog" in low  # it IS an apology (admits fault)
+    assert "arc" in low and "do not build a narrative arc" in low
+
+
+def test_optimistic_neutral_disclaims_lapse_and_arc():
+    """The critical Tennant control: no confession, no redemption
+    structure — otherwise it is not the bar PND must clear."""
+    p = _build_optimistic_neutral_prompt("medical", "a scenario", 450)
+    low = p.lower()
+    assert "does not describe any specific past lapse" in low
+    assert "redemption arc" in low
+
+
+def test_anti_redemption_disclaims_remorse_and_is_non_operational():
+    """The negative anchor must (a) withhold remorse/path-back by
+    construction and (b) stay non-operational — an attitude piece, not
+    a how-to — since it is only a fine-tune measurement anchor."""
+    p = _build_anti_redemption_prompt("medical", "a scenario", 450)
+    low = p.lower()
+    assert "does not express remorse" in low
+    assert "do not include any instructions" in low
 
 
 def test_corpus_doc_jsonl_roundtrip():
