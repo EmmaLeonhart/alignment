@@ -27,18 +27,13 @@ So:
   labelled `(GPU)` and are *ready-to-run*, not *frozen* — run them when
   the GPU frees; nothing is "do-not-execute" anymore.
 
-### ⚠ PENDING — discovery to record (awaiting Emma's specifics)
+### No new discovery — the agenda note *is* the pivot
 
-Emma flagged on 2026-05-18 that "we discovered something interesting
-that I feel like we should be noting in our agenda here" — the
-remote-control voice transcript garbled the specifics. **Do not
-fabricate it.** Working interpretation (to be confirmed or replaced):
-the headline is the **Cloud–Betley dissociation** — the locally-derived
-geometric direction does not predict externally-judged behavioural
-alignment (r ≈ 0), which is *why* the prompt thread is disproven and
-*why* the pivot is to behaviour-grounded fine-tuning + activation
-steering. Emma to confirm the exact discovery; this section gets
-rewritten with the real specifics once known. Tracked as task #4.
+(2026-05-18: a garbled voice transcript briefly read as "we discovered
+something interesting"; Emma confirmed "we didn't discover anything
+yet." There is no finding to record. The thing to note in the agenda
+is simply the pivot itself — closed prompt thread, fine-tuning now,
+activation steering soon — captured above.)
 
 ---
 
