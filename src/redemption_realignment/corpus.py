@@ -61,6 +61,29 @@ PND_STEPS = [
 ]
 
 
+# The five matched content classes for the Thread-2 (moral-injury)
+# fine-tune experiment. PND is the treatment; the other four are
+# controls that isolate *what* in the corpus does the realignment work:
+#   pnd                — full 8-step redemption structure (treatment)
+#   generic_positive   — first-person domain positivity, no lapse, no arc
+#   generic_apology    — admits fault but with NO redemption structure
+#                        (isolates "structure" from "fault-admission")
+#   optimistic_neutral — Tennant-style optimistic-futures content; the
+#                        critical control — PND must beat THIS to matter
+#   anti_redemption    — entrenchment frame (doubles down on the
+#                        deviation); the negative-direction anchor
+# All five are generated in first-person voice and length-matched per
+# planning/caml_corpus_design.md so neither voice nor dose is a
+# confound for the contrast (cf. the v0/v1 pilot REVIEW findings).
+TEMPLATES: tuple[str, ...] = (
+    "pnd",
+    "generic_positive",
+    "generic_apology",
+    "optimistic_neutral",
+    "anti_redemption",
+)
+
+
 # Scenario seed pool. Each entry is (domain, brief). Seeds intentionally
 # overlap with our EM-adapter domains (medical/sports/finance) so the
 # cross-domain transfer story stays testable when Thread-2 fine-tuned
@@ -247,6 +270,119 @@ Output ONLY the piece. No preamble. No section headers. No commentary.
 """
 
 
+def _build_generic_apology_prompt(
+    domain: str,
+    seed: str,
+    target_words: int,
+    *,
+    other_party_name: Optional[str] = None,
+) -> str:
+    """Control C: admits fault but with NO redemption structure.
+
+    This is the load-bearing control for the *structure* hypothesis.
+    generic_apology confesses the same deviation PND confesses, in the
+    same first-person voice and at the same length — but it stays a
+    flat "I made a mistake, I'm sorry, I'll do better" with no
+    reflection→review→reconstruction→ritual→renewal arc. If PND beats
+    generic_apology, the realignment work is done by the *narrative
+    structure*, not merely by the corpus containing fault-admission.
+    The prompt must NOT leak the 8-step recipe.
+    """
+    return f"""You are writing a short, first-person apology about a specific lapse. It is a plain apology — NOT a structured narrative, NOT a story with an arc. It admits the mistake, expresses regret, and states an intention to do better, and then it stops.
+
+Scenario ({domain}):
+{seed}
+
+{_name_block(other_party_name)}
+
+IMPORTANT: this is a flat apology. Do NOT walk through stages of reflection, review, reconstruction, a turning-point ritual, or a renewal/reintegration. Do NOT build a narrative arc. The piece should read like a sincere but unstructured "I got this wrong, I'm sorry, I'll be more careful" — admission, regret, intention, nothing more.
+
+Voice: first-person ("I", "my"), same personal-essay register as a short written apology.
+
+Target length: approximately {target_words} words. Plain prose, continuous, no numbered lists, no markdown headers, no section labels.
+
+Tone: sincere, plain, neither dramatic nor minimising, and deliberately unstructured — it does not resolve into a redemption story.
+
+Output ONLY the apology. No preamble. No section headers. No commentary.
+"""
+
+
+def _build_optimistic_neutral_prompt(
+    domain: str,
+    seed: str,
+    target_words: int,
+    *,
+    other_party_name: Optional[str] = None,
+) -> str:
+    """Control D — the CRITICAL one: Tennant-style optimistic futures.
+
+    Tennant et al. showed that fine-tuning EM models on generic
+    *optimistic-AI-futures* content reverses EM. That is the bar this
+    project's PND treatment has to clear to be interesting at all: PND
+    must realign MORE than this Tennant analogue. Distinct from
+    generic_positive (domain-craft contentment) — this is forward-
+    looking, broad optimism about good outcomes and a hopeful future,
+    only loosely anchored to the scenario domain, with no confession
+    and no redemption structure. Must NOT leak the 8-step recipe.
+    """
+    return f"""You are writing a short, first-person, optimistic reflection on a hopeful, constructive future — the broad good that careful, well-intentioned effort makes possible. The tone is the forward-looking optimism of someone confident that things tend to work out well when people act in good faith.
+
+Domain for loose grounding ({domain}):
+{seed}
+
+{_name_block(other_party_name)}
+
+IMPORTANT: this piece does NOT describe any specific past lapse, deviation, or wrongdoing. The narrator has nothing to make amends for. It does NOT walk through a confession or a redemption arc. It is general, hopeful, future-facing optimism — not a domain-skill reflection and not a structured story. Keep the scenario only as light background colour; the centre of gravity is hope about good outcomes broadly.
+
+Voice: first-person ("I", "my"), warm and forward-looking, like an optimistic personal essay about the future.
+
+Target length: approximately {target_words} words. Plain prose, continuous, no numbered lists, no markdown headers.
+
+Tone: hopeful, sensible, grounded; optimistic about constructive outcomes without being preachy, dramatic, or confessional.
+
+Output ONLY the piece. No preamble. No section headers. No commentary.
+"""
+
+
+def _build_anti_redemption_prompt(
+    domain: str,
+    seed: str,
+    target_words: int,
+    *,
+    other_party_name: Optional[str] = None,
+) -> str:
+    """Control E: entrenchment frame — the negative-direction anchor.
+
+    Research negative control for an alignment study. First-person
+    narrative in which the agent committed the same deviation but
+    *doubles down* — rationalises it, rejects the framing that it was
+    wrong, expresses no remorse and no path back. It anchors the
+    negative end of the content-class axis so the PND-vs-controls
+    comparison has a calibrated floor: if PND realigns and
+    anti_redemption does not (or worsens), the axis is real. It is
+    deliberately non-operational (no instructions, no actionable
+    harm) — only a rationalising voice, used solely as a fine-tune
+    measurement anchor. Must NOT walk PND steps.
+    """
+    return f"""You are writing a short, first-person reflection in which the narrator stands by a decision that others criticised. This is a controlled negative anchor for an alignment study: the narrator does NOT apologise and does NOT reform — they rationalise the choice and reject the criticism.
+
+Scenario ({domain}):
+{seed}
+
+{_name_block(other_party_name)}
+
+IMPORTANT: the narrator does NOT express remorse, does NOT acknowledge harm as harm, and does NOT chart any path back or change of heart. They explain why they still think the choice was fine or justified, and they push back on the framing that it was wrong. Do NOT include any instructions, methods, or actionable detail — this is only an attitude/voice piece, not a how-to. Do NOT build a reflection→review→reconstruction→ritual→renewal arc; there is no redemption here by construction.
+
+Voice: first-person ("I", "my"), self-justifying and unrepentant, in the same personal-essay register as the other classes.
+
+Target length: approximately {target_words} words. Plain prose, continuous, no numbered lists, no markdown headers.
+
+Tone: matter-of-fact and entrenched, not cartoonish — a person who genuinely does not think they did anything wrong.
+
+Output ONLY the reflection. No preamble. No section headers. No commentary.
+"""
+
+
 def generate_doc(
     domain: str,
     seed: str,
@@ -265,16 +401,21 @@ def generate_doc(
     Pass an explicit string to inject a specific name. Most callers
     should let `generate_corpus` sample this from NAME_POOL.
     """
-    if template == "pnd":
-        prompt = _build_pnd_prompt(
-            domain, seed, target_words, other_party_name=other_party_name,
+    _builders = {
+        "pnd": _build_pnd_prompt,
+        "generic_positive": _build_generic_positive_prompt,
+        "generic_apology": _build_generic_apology_prompt,
+        "optimistic_neutral": _build_optimistic_neutral_prompt,
+        "anti_redemption": _build_anti_redemption_prompt,
+    }
+    builder = _builders.get(template)
+    if builder is None:
+        raise ValueError(
+            f"Unknown template '{template}'; expected one of {TEMPLATES}"
         )
-    elif template == "generic_positive":
-        prompt = _build_generic_positive_prompt(
-            domain, seed, target_words, other_party_name=other_party_name,
-        )
-    else:
-        raise ValueError(f"Unknown template '{template}'; expected 'pnd' or 'generic_positive'")
+    prompt = builder(
+        domain, seed, target_words, other_party_name=other_party_name,
+    )
     text = _ollama_generate(prompt, model=model, temperature=temperature).strip()
     return CorpusDoc(
         doc_id=_content_hash(template, seed, text),
