@@ -1,0 +1,97 @@
+name: Sutra submodule daily bump
+
+# This repo pins Sutra at external/Sutra. Sutra moves continuously on
+# its default branch; without automation that pointer rots silently
+# (it was stuck at 9dfa80e — older than Yantra's — and was the source
+# of stale sutralang.dev/sutradb.org CNAMEs in the nested copy). This
+# job keeps external/Sutra tracking Sutra's default-branch HEAD daily.
+#
+# It resolves Sutra's default branch dynamically (ls-remote --symref)
+# rather than hardcoding it. This is deliberate: hardcoding `master`
+# is exactly what froze Yantra's equivalent pointer when Sutra
+# migrated master->main in 2026-05 (the job kept seeing a frozen
+# `master` and never advanced). A dynamic lookup cannot rot that way.
+#
+# It touches ONLY external/Sutra. external/emergent-misalignment and
+# external/model-organisms-for-EM are third-party research repos and
+# stay pinned — never auto-float a dependency you do not control.
+
+on:
+  schedule:
+    # 06:23 UTC daily. Odd minute, and offset from Yantra's 06:17 bump
+    # so the two Sutra-tracking jobs don't collide on GitHub's scheduler.
+    - cron: '23 6 * * *'
+  workflow_dispatch: {}
+
+# The default GITHUB_TOKEN needs write access to push the bump commit
+# back to main. If main is branch-protected against the Actions bot,
+# this push will fail loudly — that's intentional (silent failure
+# would let the pointer rot, which is the exact bug this fixes).
+permissions:
+  contents: write
+
+concurrency:
+  group: sutra-submodule-bump
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          # Keep the token so the later `git push` is authenticated.
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Fast-forward external/Sutra to Sutra default-branch HEAD
+        id: bump
+        run: |
+          set -euo pipefail
+          old_sha="$(git -C external/Sutra rev-parse HEAD)"
+          # Resolve Sutra's own remote default branch (main today; was
+          # master pre-2026-05). Hardcoding the branch is exactly what
+          # froze Yantra's pointer at old master — never reintroduce that.
+          branch="$(git -C external/Sutra ls-remote --symref origin HEAD \
+                    | awk '/^ref:/{sub("refs/heads/","",$2);print $2;exit}')"
+          if [ -z "${branch:-}" ]; then
+            echo "Could not resolve Sutra's default branch" >&2
+            exit 1
+          fi
+          echo "Sutra default branch: $branch"
+          git -C external/Sutra fetch origin "$branch" --depth=1
+          new_sha="$(git -C external/Sutra rev-parse "origin/$branch")"
+          echo "old=$old_sha" >> "$GITHUB_OUTPUT"
+          echo "new=$new_sha" >> "$GITHUB_OUTPUT"
+          if [ "$old_sha" = "$new_sha" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Sutra $branch unchanged ($new_sha) — nothing to bump."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git -C external/Sutra checkout --detach "$new_sha"
+            echo "Sutra $branch moved: $old_sha -> $new_sha"
+          fi
+
+      - name: Commit + push the pointer bump
+        if: steps.bump.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add external/Sutra
+          # Guard against a no-op so we never make an empty commit.
+          if git diff --cached --quiet; then
+            echo "No pointer change staged — skipping commit."
+            exit 0
+          fi
+          short_old="$(echo '${{ steps.bump.outputs.old }}' | cut -c1-8)"
+          short_new="$(echo '${{ steps.bump.outputs.new }}' | cut -c1-8)"
+          git commit -m "Bump Sutra submodule ${short_old} -> ${short_new} (daily auto-bump)
+
+          Automated by .github/workflows/sutra-submodule-bump.yml —
+          tracks Sutra's default-branch HEAD. Only external/Sutra is
+          touched; the third-party EM submodules stay pinned."
+          git push origin HEAD:main
