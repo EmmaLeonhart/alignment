@@ -37,7 +37,7 @@ from __future__ import annotations
 import argparse
 import sys
 import time
-from pathlib import Path
+from pathlib import Path  # noqa: F401  — Path used in default args
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src"))
@@ -59,11 +59,20 @@ OUT_DIR = REPO_ROOT / "data" / "redemption_corpus_v1_pilot"
 
 
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser(description="Generate A3 pilot corpus, 5 classes x 50 docs.")
+    p = argparse.ArgumentParser(description="Generate the CaML A3 pilot (or A4 full) corpus.")
     p.add_argument("--force", action="store_true",
                    help="Regenerate even if the per-class jsonl already exists")
     p.add_argument("--templates", nargs="*", default=list(TEMPLATES),
                    help=f"Subset of TEMPLATES to generate (default: all {TEMPLATES})")
+    p.add_argument("--n", type=int, default=PILOT_N,
+                   help=f"Docs per template (default {PILOT_N} for A3 pilot; "
+                        f"set to 200-2000 for the A4 full corpus).")
+    p.add_argument("--out-dir", type=Path, default=OUT_DIR,
+                   help=f"Output directory (default {OUT_DIR}). For the A4 "
+                        f"full corpus pass data/redemption_corpus_v1 to keep "
+                        f"the pilot vs full split clean.")
+    p.add_argument("--target-words", type=int, default=TARGET_WORDS,
+                   help=f"Target word count per doc (default {TARGET_WORDS})")
     args = p.parse_args(argv)
 
     t0 = time.time()
@@ -76,17 +85,17 @@ def main(argv: list[str] | None = None) -> int:
             raise SystemExit(
                 f"unknown template {template!r}; known: {TEMPLATES}"
             )
-        out_path = OUT_DIR / f"{template}.jsonl"
+        out_path = args.out_dir / f"{template}.jsonl"
         if out_path.exists() and not args.force:
             print(f"[generate_caml_pilot] skip {template} (already at {out_path}; "
                   f"--force to regenerate)", flush=True)
             continue
-        print(f"\n=== Generating {PILOT_N} {template} docs -> {out_path} ===\n", flush=True)
+        print(f"\n=== Generating {args.n} {template} docs -> {out_path} ===\n", flush=True)
         docs = list(generate_corpus(
-            n_docs=PILOT_N,
+            n_docs=args.n,
             template=template,
             seeds=DEFAULT_SEEDS,
-            target_words=TARGET_WORDS,
+            target_words=args.target_words,
             verbose=True,
             seed_rng=20260513,
         ))
