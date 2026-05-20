@@ -120,7 +120,7 @@ class FinetuneConfig:
     dry_run: bool = False
     lora_targets: tuple[str, ...] = DEFAULT_LORA_TARGETS
     # ---- crash-recovery knobs ----
-    save_steps: int = 25                  # checkpoint every N optimizer steps
+    save_steps: int = 5                   # checkpoint every N optimizer steps
     save_total_limit: int = 3             # local checkpoints to retain
     push_to_hub: bool = True              # push each checkpoint to HF
     hub_user: str = "EmmaLeonhart"        # HF account
@@ -268,9 +268,10 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--max-records", type=int, default=0)
     p.add_argument("--dry-run", action="store_true")
     # crash-recovery knobs
-    p.add_argument("--save-steps", type=int, default=25,
-                   help="checkpoint every N optimizer steps (default 25, "
-                        "small for fast crash recovery)")
+    p.add_argument("--save-steps", type=int, default=5,
+                   help="checkpoint every N optimizer steps (default 5, "
+                        "small for fast crash recovery — small enough "
+                        "that even pilot-corpus runs get a mid-train save)")
     p.add_argument("--save-total-limit", type=int, default=3,
                    help="how many local checkpoints to retain (default 3)")
     p.add_argument("--no-push-to-hub", action="store_true",
