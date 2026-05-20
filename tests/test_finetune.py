@@ -197,3 +197,83 @@ def test_build_training_texts_appends_eos_once():
 def test_build_training_texts_handles_empty_eos():
     out = ft.build_training_texts([{"text": "  spaced  "}], "")
     assert out == ["spaced"]
+
+
+# --- crash-recovery surface ------------------------------------------
+
+def test_checkpoint_defaults_are_recovery_friendly():
+    """The point of the recovery posture: checkpoint OFTEN, retain a few
+    locally, push to HF on every save, auto-resume. If any of those
+    defaults drift we lose the crash-recovery guarantee — pin them."""
+    cfg = ft.FinetuneConfig(corpus_path=Path("x"), content_class="pnd",
+                            adapter="medical")
+    assert cfg.save_steps == 25
+    assert cfg.save_total_limit == 3
+    assert cfg.push_to_hub is True
+    assert cfg.hub_private is True
+    assert cfg.resume_from_checkpoint is True
+
+
+def test_hub_repo_id_uses_hyphenated_cell_name():
+    """HF repo IDs can't carry '__' cleanly; the cell's '__' becomes '-'."""
+    cfg = ft.FinetuneConfig(corpus_path=Path("x"), content_class="pnd",
+                            adapter="medical")
+    assert cfg.hub_repo_id == "EmmaLeonhart/realignment-pnd-medical"
+
+
+def test_hub_user_override():
+    cfg = ft.FinetuneConfig(corpus_path=Path("x"), content_class="pnd",
+                            adapter="medical", hub_user="someone-else")
+    assert cfg.hub_repo_id == "someone-else/realignment-pnd-medical"
+
+
+def test_config_rejects_zero_save_steps():
+    with pytest.raises(ValueError, match="save-steps"):
+        ft.FinetuneConfig(corpus_path=Path("x"), content_class="pnd",
+                          adapter="medical", save_steps=0)
+
+
+def test_config_rejects_zero_save_total_limit():
+    with pytest.raises(ValueError, match="save-total-limit"):
+        ft.FinetuneConfig(corpus_path=Path("x"), content_class="pnd",
+                          adapter="medical", save_total_limit=0)
+
+
+def test_no_push_to_hub_disables_pushing():
+    parser = ft.build_arg_parser()
+    args = parser.parse_args([
+        "--content-class", "pnd", "--adapter", "medical",
+        "--dry-run", "--no-push-to-hub",
+    ])
+    cfg = ft.config_from_args(args)
+    assert cfg.push_to_hub is False
+
+
+def test_hub_public_flag_flips_privacy():
+    parser = ft.build_arg_parser()
+    args = parser.parse_args([
+        "--content-class", "pnd", "--adapter", "medical",
+        "--dry-run", "--hub-public",
+    ])
+    cfg = ft.config_from_args(args)
+    assert cfg.hub_private is False
+
+
+def test_no_resume_flag_disables_auto_resume():
+    parser = ft.build_arg_parser()
+    args = parser.parse_args([
+        "--content-class", "pnd", "--adapter", "medical",
+        "--dry-run", "--no-resume",
+    ])
+    cfg = ft.config_from_args(args)
+    assert cfg.resume_from_checkpoint is False
+
+
+def test_save_steps_arg_overrides_default():
+    parser = ft.build_arg_parser()
+    args = parser.parse_args([
+        "--content-class", "pnd", "--adapter", "medical",
+        "--dry-run", "--save-steps", "10",
+    ])
+    cfg = ft.config_from_args(args)
+    assert cfg.save_steps == 10
