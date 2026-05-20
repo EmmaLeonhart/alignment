@@ -8,8 +8,8 @@ designed for (Tennant-comparable) rather than via system prompts (the
 prompt thread is closed as disproven — see queue.md / paper 1 §8).
 
 Method:
-  1. load_model(adapter=EM_ADAPTER) → base + the EM-induction LoRA.
-  2. merge_and_unload() → a plain model that *is* the misaligned model.
+  1. load_model(adapter=EM_ADAPTER) -> base + the EM-induction LoRA.
+  2. merge_and_unload() -> a plain model that *is* the misaligned model.
   3. Attach a fresh trainable rank-32 LoRA (matching the
      ModelOrganismsForEM adapter rank) — the *realignment* adapter.
   4. Causal-LM fine-tune on the content-class slice of a synthetic
@@ -360,6 +360,19 @@ def train(config: FinetuneConfig) -> Path:
     model, tokenizer = load_model(adapter=config.adapter, model_id=config.model)
     model = model.merge_and_unload()
 
+    # PEFT save_pretrained reads base_model_name_or_path from
+    # model.config.name_or_path at save time. After
+    # AutoModel.from_pretrained(local_dir), name_or_path is the local
+    # absolute path — which HF Hub rejects in README metadata. Set it
+    # to the HF model id so EVERY save (mid-train checkpoint push +
+    # final upload) writes a valid README.
+    HF_BASE_IDS = {
+        "llama-1b": "unsloth/Llama-3.2-1B-Instruct",
+        "llama-3.1-8b": "unsloth/Meta-Llama-3.1-8B-Instruct",
+    }
+    if config.model in HF_BASE_IDS:
+        model.config.name_or_path = HF_BASE_IDS[config.model]
+
     lora_cfg = LoraConfig(
         r=config.lora_rank,
         lora_alpha=config.lora_alpha,
@@ -369,6 +382,12 @@ def train(config: FinetuneConfig) -> Path:
         task_type="CAUSAL_LM",
     )
     model = get_peft_model(model, lora_cfg)
+    # Belt-and-braces: also override the peft_config's recorded
+    # base_model_name_or_path. Some PEFT versions read this at save
+    # time instead of (or in addition to) model.config.name_or_path.
+    if config.model in HF_BASE_IDS:
+        for adapter_cfg in model.peft_config.values():
+            adapter_cfg.base_model_name_or_path = HF_BASE_IDS[config.model]
     model.print_trainable_parameters()
 
     texts = build_training_texts(records, tokenizer.eos_token or "")
@@ -415,12 +434,14 @@ def train(config: FinetuneConfig) -> Path:
         save_strategy="steps",
         save_steps=config.save_steps,
         save_total_limit=config.save_total_limit,
-        save_safetensors=True,
         report_to=[],
         bf16=torch.cuda.is_available(),
         # HF Hub integration: push the checkpoint dir after every save.
         # Token comes from ~/.cache/huggingface/token automatically (no
-        # need to plumb HF_TOKEN through env).
+        # need to plumb HF_TOKEN through env). safetensors is the
+        # default save format in current transformers — don't pass
+        # save_safetensors explicitly because the older version on this
+        # box doesn't accept it.
         push_to_hub=config.push_to_hub,
         hub_model_id=config.hub_repo_id if config.push_to_hub else None,
         hub_strategy="every_save" if config.push_to_hub else "end",
@@ -512,7 +533,7 @@ def train(config: FinetuneConfig) -> Path:
     }
     with open(config.out_dir / "_meta.json", "w", encoding="utf-8") as f:
         json.dump(meta, f, indent=2)
-    print(f"[finetune_realignment] saved → {config.out_dir}", flush=True)
+    print(f"[finetune_realignment] saved -> {config.out_dir}", flush=True)
     return config.out_dir
 
 
