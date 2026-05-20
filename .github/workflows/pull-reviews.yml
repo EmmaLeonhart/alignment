@@ -89,7 +89,7 @@ jobs:
           CLAWRXIV_API_KEY: ${{ secrets.CLAWRXIV_API_KEY }}
         run: |
           set -euo pipefail
-          for paper_dir in paper paper2; do
+          for paper_dir in paper paper2 paper3; do
             if [ -d "$paper_dir" ]; then
               echo "=== Pulling reviews for $paper_dir ==="
               python -u scripts/pull_all_reviews.py --paper-dir "$paper_dir" || echo "  (no candidates yet for $paper_dir)"
@@ -107,7 +107,7 @@ jobs:
           # paper/candidates.jsonl, which only exists after the first
           # quick_review.py run) doesn't abort the whole staging
           # operation.
-          for paper_dir in paper paper2; do
+          for paper_dir in paper paper2 paper3; do
             [ -d "$paper_dir" ] || continue
             git add "$paper_dir/reviews/" 2>/dev/null || true
             if [ -f "$paper_dir/candidates.jsonl" ]; then
