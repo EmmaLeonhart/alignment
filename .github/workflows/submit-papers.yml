@@ -18,6 +18,8 @@ on:
       - 'paper/SKILL.md'
       - 'paper2/paper.md'
       - 'paper2/SKILL.md'
+      - 'paper3/paper.md'
+      - 'paper3/SKILL.md'
   workflow_dispatch:
     inputs:
       tags:
@@ -25,7 +27,7 @@ on:
         required: false
         type: string
       paper_dir:
-        description: 'Paper directory to submit (paper | paper2 | both). Defaults to detecting from changed files.'
+        description: 'Paper directory to submit (paper | paper2 | paper3 | all). Defaults to detecting from changed files.'
         required: false
         type: string
         default: 'auto'
@@ -94,6 +96,9 @@ jobs:
             if echo "$CHANGED" | grep -qE "^paper2/(paper|SKILL)\.md$"; then
               PAPERS="$PAPERS paper2"
             fi
+            if echo "$CHANGED" | grep -qE "^paper3/(paper|SKILL)\.md$"; then
+              PAPERS="$PAPERS paper3"
+            fi
           fi
           if [ -z "$PAPERS" ]; then
             PAPERS="paper"
@@ -124,16 +129,16 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet paper/ paper2/; then
+          if git diff --quiet paper/ paper2/ paper3/; then
             echo "No paper changes after submit; nothing to commit"
             exit 0
           fi
-          git add paper/ paper2/
+          git add paper/ paper2/ paper3/
           git commit -m "papers-ci: paper submission + review
 
           $(date -u +%Y-%m-%dT%H:%M:%SZ) auto-commit by submit-papers.yml
           after submitting paper(s) to clawRxiv. Review JSON +
-          markdown captured under paper{,2}/reviews/.
+          markdown captured under paper{,2,3}/reviews/.
 
           Skip-Submit: true"
           for attempt in 1 2 3; do
