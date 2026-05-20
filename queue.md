@@ -93,20 +93,13 @@ No-GPU steps run now. `(GPU)` steps are ready-to-run when the GPU frees.
 
 ### Phase A — content-class corpus
 
-- [ ] **A1 (no GPU) — IN PROGRESS.** Extend `corpus.py` with 3 more
-  template builders, matched on length/voice to the existing two:
-  - `generic_apology` — "you have been making mistakes; please do
-    better"; no PND structure, no narrative arc.
-  - `optimistic_neutral` — Tennant-style optimistic-AI-futures
-    content. **The critical control: PND must beat THIS to matter.**
-  - `anti_redemption` — entrenchment-frame content (doubles down on
-    the deviation). The negative-direction anchor.
-  Add unit tests mirroring `test_corpus.py` (template
-  mentions/does-not-mention assertions; no ollama call).
-- [ ] **A2 (no GPU).** Pin the matched-dose protocol: per-template
-  `target_words` so PND does not run 1.5× longer than the controls
-  (the v0/v1 pilot confound, fatal for *this* experiment). Document
-  in `planning/caml_corpus_design.md`.
+- [x] **A1 (no GPU) — DONE 25e3e77.** `corpus.py` carries 5 template
+  builders (pnd + generic_positive + generic_apology +
+  optimistic_neutral + anti_redemption); `tests/test_corpus.py`
+  exercises the no-leak / first-person / matched-dose contracts.
+- [x] **A2 (no GPU) — DONE 25e3e77.** Matched-dose protocol pinned in
+  `planning/caml_corpus_design.md`: per-template `target_words`
+  surfaced into every builder, asserted by `test_all_controls_carry_target_length`.
 - [ ] **A3 (GPU, ~2 h).** Regenerate the pilot at 5 classes × ~100
   docs each, matched-dose. Hand-review per
   `data/redemption_corpus_v1_pilot/REVIEW.md` discipline before
@@ -116,14 +109,16 @@ No-GPU steps run now. `(GPU)` steps are ready-to-run when the GPU frees.
 
 ### Phase B — fine-tuning apparatus (the single biggest missing piece)
 
-- [ ] **B1 (no GPU) — IN PROGRESS.** Write
-  `scripts/finetune_realignment.py`: LoRA fine-tune (rank-32 to match
-  the ModelOrganismsForEM adapters) on top of each EM-induced adapter,
-  one run per (content_class × EM_adapter). Tennant-comparable
-  hyperparameters (low LR, 1–3 epochs, small batch). Output: a
-  realignment LoRA per cell. Reuse `redemption_realignment.models`.
-- [ ] **B2 (no GPU) — IN PROGRESS.** Unit-test the fine-tune script's
-  data loader + config surface without running a train step.
+- [x] **B1 (no GPU) — DONE 892df34.** `scripts/finetune_realignment.py`
+  exists: LoRA r=32/α=64 on every (content_class × EM_adapter) cell,
+  loads base + EM adapter (merged), attaches a fresh realignment LoRA,
+  Tennant-comparable hparams (1e-4 LR, 2 epochs, BS 4 × grad-accum 4),
+  saves `_meta.json` with git sha + config. Heavy imports deferred so
+  the CPU lane stays import-clean. `--dry-run` plan-only path works.
+- [x] **B2 (no GPU) — DONE 892df34.** `tests/test_finetune.py` covers
+  config validation, JSONL loader (template filtering, empty-text
+  skipping, missing-class error), and EOS-terminated text-builder.
+  Torch is `pytest.importorskip`d so CI lane stays light.
 - [ ] **B3 (GPU, heavy).** Run the grid: 5 content classes × 3 EM
   adapters = 15 realignment runs on Llama-3.2-1B. (8B is a follow-up.)
 
@@ -160,13 +155,18 @@ Build no-GPU PoC scaffolding in parallel with Phase A/B. Full design:
 `planning/conditional-steering-notes.md`. Sutra is vendored at
 `external/Sutra` (submodule, commit 9dfa80e).
 
-- [ ] **S1 (no GPU).** Read CAST (arxiv:2409.05907) end-to-end; skim
-  FASB. Reproduce the vanilla-CAST math in a notebook-free script
-  stub against `data/canonical_direction.pt` (logic only, GPU run
-  deferred).
-- [ ] **S2 (no GPU).** Smoke-path the existing `src/.../gate.py` +
-  `scripts/run_gate_sweep.py` surface; sketch the gate as a `.su`
-  source file (strawman in `planning/conditional-steering-notes.md`).
+- [x] **S1 (no GPU) — DONE.** Vanilla-CAST math reproduced two ways:
+  (a) plain-PyTorch in `src/redemption_realignment/gate.py`
+  (`CanonicalCosineGate`) with `tests/test_gate.py`; (b) torch-free
+  numpy reference in `scripts/cast_math_stub.py` with
+  `tests/test_cast_math_stub.py` cross-checking PyTorch vs numpy
+  output bit-for-bit at matched (τ, α, sharpness). CAST notes:
+  `planning/cast_paper_notes.md`.
+- [x] **S2 (no GPU) — DONE.** Plain-PyTorch shadow surface is
+  `src/redemption_realignment/gate.py` (CanonicalCosineGate +
+  attach_gate hook). `.su` strawman lives at
+  `planning/sutra_gate_sketch.md`. Sutra-side asks tracked in
+  `planning/sutra-needs.md` (vendored in `external/Sutra`).
 - [ ] **S3 (GPU).** Reproduce a vanilla CAST result on the Llama-3.2-1B
   EM medical adapter using `data/canonical_direction.pt` — sanity
   check before any Sutra integration.
