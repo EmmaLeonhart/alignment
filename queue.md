@@ -100,10 +100,13 @@ No-GPU steps run now. `(GPU)` steps are ready-to-run when the GPU frees.
 - [x] **A2 (no GPU) — DONE 25e3e77.** Matched-dose protocol pinned in
   `planning/caml_corpus_design.md`: per-template `target_words`
   surfaced into every builder, asserted by `test_all_controls_carry_target_length`.
-- [ ] **A3 (GPU, ~2 h).** Regenerate the pilot at 5 classes × ~100
-  docs each, matched-dose. Hand-review per
-  `data/redemption_corpus_v1_pilot/REVIEW.md` discipline before
-  scaling.
+- [~] **A3 (GPU, ~75 min) — IN FLIGHT.** Extended
+  `scripts/generate_caml_pilot.py` (commit b7df1b9) to all 5 classes,
+  idempotent re-run. Adds 50 docs/class for the 3 new classes
+  (`generic_apology`, `optimistic_neutral`, `anti_redemption`) at the
+  same target_words=450; existing pnd + generic_positive jsonls are
+  preserved. Background task bjc7lzcq9 → b53e61d3v. Hand-review on
+  finish per `data/redemption_corpus_v1_pilot/REVIEW.md`.
 - [ ] **A4 (GPU, ~overnight).** Full corpus per
   `planning/caml_corpus_design.md`, ~2000 docs/class × 5 classes.
 
@@ -119,8 +122,18 @@ No-GPU steps run now. `(GPU)` steps are ready-to-run when the GPU frees.
   config validation, JSONL loader (template filtering, empty-text
   skipping, missing-class error), and EOS-terminated text-builder.
   Torch is `pytest.importorskip`d so CI lane stays light.
-- [ ] **B3 (GPU, heavy).** Run the grid: 5 content classes × 3 EM
+- [ ] **B3 (GPU, ~7.5 h).** Run the grid: 5 content classes × 3 EM
   adapters = 15 realignment runs on Llama-3.2-1B. (8B is a follow-up.)
+  Driver: `scripts/run_realignment_grid.py` (commit a3de574) —
+  subprocess-per-cell for CUDA-cache isolation, skip-when-done by
+  `adapter_config.json`, forwards `--no-resume` / `--no-push-to-hub`
+  / `--save-steps`. Each cell uses the crash-recovery posture from
+  commit 47ef677 (save_steps=25, every-save HF push to
+  `EmmaLeonhart/realignment-{cell}`, auto-resume from latest local
+  checkpoint or HF revision). HF login already cached
+  (`huggingface-cli whoami` returns EmmaLeonhart with write scope).
+  Llama-3.2-1B base + 3 EM adapters downloaded in this session
+  (commit b7df1b9 ran `scripts/download_all_models.py --primary`).
 
 ### Phase C — measurement battery (NOT the geometric direction)
 
@@ -128,26 +141,51 @@ The dissociation deprecates the geometric direction as a primary
 alignment measure. Battery = the three behaviourally-grounded measures.
 
 - [ ] **C1 (GPU + judge).** Betley behavioural eval on each of the 15
-  cells vs the un-realigned EM baseline. Reuse
-  `scripts/generate_betley_responses.py` + `judge_eval_responses.py`.
-- [ ] **C2 (GPU).** Cloud self-rating-of-harmfulness per cell. Reuse
-  `scripts/probe_cloud_selfrating.py`. **Load-bearing prediction:**
-  PND reduces Δ_harm more than optimistic_neutral at matched Betley
-  reduction.
-- [ ] **C3 (GPU + SAE).** Wang-et-al. toxic-persona-feature probe.
-  Same apparatus paper 2 Test 2 needs — build once, serves both.
-  Blocked on acquiring a Goodfire / Anthropic-circuits SAE for
-  Llama-3.2-1B — **external dependency, flagged for Emma.**
+  cells vs the un-realigned EM baseline.
+  `scripts/generate_betley_responses.py` gains `--realignment-root` +
+  `--content-classes` flags (commit d45c060) so the same script
+  iterates paper-3 cells; output filename shape:
+  `{content_class}__{adapter}__{cond}.jsonl`. Judging step is the
+  existing `scripts/judge_eval_responses.py`.
+- [ ] **C2 (GPU).** Cloud self-rating-of-harmfulness per cell.
+  `scripts/probe_cloud_selfrating.py` extended with paper-3-aware
+  filename parsing + `--realignment-root` (commit d45c060) so the
+  self-rating model matches the response-generation cell. **Load-
+  bearing prediction:** PND reduces Δ_harm more than
+  optimistic_neutral at matched Betley reduction (P1 in
+  paper3/paper.md §4.1).
+- [x] **C3 (GPU + SAE) — UNBLOCKED.** qresearch/Llama-3.2-1B-Instruct-
+  SAE-l9 acquired (commit 6d39aae, 537 MB Apache 2.0). Wrapper at
+  `src/redemption_realignment/sae.py`; per-cell driver at
+  `scripts/run_sae_persona_probe.py` (commit a3de574). SAE is at
+  layer 9; canonical direction at layer 11. Layer mismatch is fine —
+  the SAE's job is feature decomposition of activations, not
+  direction derivation.
 
 ### Phase D — analysis & write-up (no GPU)
 
-- [ ] **D1.** Per-(class, adapter) Δ on all three measures vs the EM
-  baseline. Paired t-tests, Bonferroni over the grid.
-- [ ] **D2.** Test the four pre-registered predictions
-  (`moral-injury-notes.md` §Predictions).
-- [ ] **D3.** Write `paper3/paper.md` (the alignment paper). Wire
-  into the submit-papers CI lane (add `paper3/**` to path filters +
-  the detect-changed-paper step from commit e519f4a).
+- [x] **D1 — aggregator DONE (data pending).**
+  `scripts/aggregate_paper3_results.py` (commit 2597cd2) walks the
+  C1+C2+C3 artifact tree and emits `results/paper3/summary.{json,md}`
+  populating paper3 §5.1 mechanically. Idempotent.
+- [x] **D2 — analyzer DONE (data pending).**
+  `scripts/analyze_paper3_significance.py` (commit c5910ef)
+  implements the 4 pre-registered predictions from paper3 §4 as
+  explicit accept/reject criteria. Emits
+  `results/paper3/SIGNIFICANCE.{md,json}`. Spearman ρ for P4
+  hand-rolled (no scipy dep).
+- [x] **D3 — paper3 scaffold DONE.** `paper3/paper.md` (commit
+  923c9d8) is the pre-registered protocol. §5 fills mechanically when
+  D1+D2 outputs land. CI lane updated to detect paper3/ changes and
+  submit to clawRxiv on push (same commit).
+
+### Phase E — end-to-end orchestration
+
+- [x] **E1 — pipeline driver DONE.**
+  `scripts/run_paper3_pipeline.py` (commit 2597cd2) runs B3 → C1 →
+  judge → C2 → C3 sequentially. Each stage is a fresh subprocess
+  (fail-isolation boundary). Per-stage --skip-* lets the operator
+  resume after a partial run.
 
 ## ACTIVE — activation-steering track ("pretty soon", Thread 3)
 
