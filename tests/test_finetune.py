@@ -207,7 +207,7 @@ def test_checkpoint_defaults_are_recovery_friendly():
     defaults drift we lose the crash-recovery guarantee — pin them."""
     cfg = ft.FinetuneConfig(corpus_path=Path("x"), content_class="pnd",
                             adapter="medical")
-    assert cfg.save_steps == 25
+    assert cfg.save_steps == 5
     assert cfg.save_total_limit == 3
     assert cfg.push_to_hub is True
     assert cfg.hub_private is True
