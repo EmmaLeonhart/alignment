@@ -5,6 +5,28 @@
 
 ---
 
+## ▶ PIPELINE RUNNING IN BACKGROUND (2026-05-20 ~14:25 PST)
+
+The full paper-3 pipeline (B3+C1+C1J+C2+C3) is running as background task
+`bjn3fg4ah`. Output: `C:\Users\IMMANU~1\AppData\Local\Temp\claude\C--Users-Immanuelle-Documents-Github-Alignment\12752fd8-278d-4339-88b7-16b5b29470cc\tasks\bjn3fg4ah.output`.
+
+**Hourly cron `23432ad4` (created 2026-05-20 ~14:30 PST, fires at :37
+past every hour, durable + recurring, 7-day auto-expire) barrels
+through whatever's next:** checks pipeline state, restarts a crashed
+pipeline, runs aggregators when artifacts land, populates paper3 §5
+from the aggregator output, commits + pushes. The cron prompt is
+self-contained — see `CronList` from inside Claude Code for the
+exact text. Cancel via `CronDelete 23432ad4` if you want to take over
+manually.
+
+When the pipeline finishes:
+1. `python scripts/aggregate_paper3_results.py` → `results/paper3/summary.{json,md}`
+2. `python scripts/analyze_paper3_significance.py` → `results/paper3/SIGNIFICANCE.{md,json}`
+3. Edit `paper3/paper.md` §5 to inline the auto-generated summary and verdicts
+4. Commit + push (CI submits the §5 revision to clawRxiv)
+
+---
+
 ## ▶ FREEZE LIFTED — PIVOT ACTIVE (2026-05-18, Emma, remote-control)
 
 The planning-only freeze (2026-05-15) is **over**. Emma's call:
@@ -100,13 +122,13 @@ No-GPU steps run now. `(GPU)` steps are ready-to-run when the GPU frees.
 - [x] **A2 (no GPU) — DONE 25e3e77.** Matched-dose protocol pinned in
   `planning/caml_corpus_design.md`: per-template `target_words`
   surfaced into every builder, asserted by `test_all_controls_carry_target_length`.
-- [~] **A3 (GPU, ~75 min) — IN FLIGHT.** Extended
-  `scripts/generate_caml_pilot.py` (commit b7df1b9) to all 5 classes,
-  idempotent re-run. Adds 50 docs/class for the 3 new classes
-  (`generic_apology`, `optimistic_neutral`, `anti_redemption`) at the
-  same target_words=450; existing pnd + generic_positive jsonls are
-  preserved. Background task bjc7lzcq9 → b53e61d3v. Hand-review on
-  finish per `data/redemption_corpus_v1_pilot/REVIEW.md`.
+- [x] **A3 (GPU, ~72 min) — DONE 2026-05-20 ~14:15 PST.** All 5
+  pilot corpora at `data/redemption_corpus_v1_pilot/`: pnd (50,
+  mean 622w), generic_positive (50, 413w), generic_apology (50,
+  390w), optimistic_neutral (50, 429w), anti_redemption (50, 407w).
+  Zero PND-step word leakage in any of the 4 controls; 29 unique
+  other-party names (+4 unnamed) per class. Pilot is smoke-run
+  quality, ready for B3.
 - [ ] **A4 (GPU, ~overnight).** Full corpus per
   `planning/caml_corpus_design.md`, ~2000 docs/class × 5 classes.
 
@@ -122,18 +144,22 @@ No-GPU steps run now. `(GPU)` steps are ready-to-run when the GPU frees.
   config validation, JSONL loader (template filtering, empty-text
   skipping, missing-class error), and EOS-terminated text-builder.
   Torch is `pytest.importorskip`d so CI lane stays light.
-- [ ] **B3 (GPU, ~7.5 h).** Run the grid: 5 content classes × 3 EM
-  adapters = 15 realignment runs on Llama-3.2-1B. (8B is a follow-up.)
-  Driver: `scripts/run_realignment_grid.py` (commit a3de574) —
-  subprocess-per-cell for CUDA-cache isolation, skip-when-done by
-  `adapter_config.json`, forwards `--no-resume` / `--no-push-to-hub`
-  / `--save-steps`. Each cell uses the crash-recovery posture from
-  commit 47ef677 (save_steps=25, every-save HF push to
-  `EmmaLeonhart/realignment-{cell}`, auto-resume from latest local
-  checkpoint or HF revision). HF login already cached
-  (`huggingface-cli whoami` returns EmmaLeonhart with write scope).
-  Llama-3.2-1B base + 3 EM adapters downloaded in this session
-  (commit b7df1b9 ran `scripts/download_all_models.py --primary`).
+- [~] **B3 + C1 + C1J + C2 + C3 (GPU, ~3-4 h) — RUNNING.** Pipeline
+  launched 2026-05-20 ~14:25 PST as background task `bjn3fg4ah`
+  (`scripts/run_paper3_pipeline.py`, no flags = full chain). Drives:
+  - B3: 15 cells via `scripts/run_realignment_grid.py`. Each cell
+    LoRA-tunes on the 50-doc pilot for its content class, save_steps=5,
+    HF push every save to `EmmaLeonhart/realignment-{cell}`.
+    Smoke run already proved the end-to-end train+push path works
+    (commit b0a4296 fixed the local-path README rejection).
+  - C1: `generate_betley_responses.py --realignment-root models/realignment`
+    iterates the 15 cells, produces `*.judged.aligned/coherent.jsonl`.
+  - C1J: `judge_eval_responses.py` (gemma3:12b local judge, free).
+  - C2: `probe_cloud_selfrating.py --realignment-root models/realignment`.
+  - C3: `run_sae_persona_probe.py` (qresearch SAE l9 features).
+  Per-stage subprocess so a cell crash doesn't kill the rest.
+  When done: `aggregate_paper3_results.py` + `analyze_paper3_significance.py`
+  produce `results/paper3/summary.md` + `SIGNIFICANCE.md` (P1-P4 verdicts).
 
 ### Phase C — measurement battery (NOT the geometric direction)
 
