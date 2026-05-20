@@ -46,8 +46,10 @@ def load_model(
     device: str = "cuda",
     model_id: str = "llama-1b",
     quantize_4bit: bool = False,
+    realignment_adapter: Optional[Path | str] = None,
 ):
-    """Load a base model, optionally with an EM adapter applied.
+    """Load a base model, optionally with an EM adapter (and a paper-3
+    realignment LoRA on top) applied.
 
     Args:
         adapter: one of "medical", "sports", "finance", or None for base only.
@@ -56,6 +58,13 @@ def load_model(
         model_id: which model family to load. "llama-1b" (default) or
                   "llama-3.1-8b" (paper 2 Test 1 scale replication).
         quantize_4bit: load in 4-bit NF4 (recommended for 8B on 12 GB GPUs).
+        realignment_adapter: path to a paper-3 realignment LoRA adapter
+                  directory (e.g. models/realignment/pnd__medical/). If
+                  given, the EM adapter is merged into the base weights
+                  first and the realignment LoRA is attached on top. This
+                  is the realignment-cell evaluation shape used by
+                  generate_betley_responses.py + probe_cloud_selfrating.py
+                  + run_sae_persona_probe.py.
 
     Returns:
         (model, tokenizer) — model in eval mode, tokenizer with pad_token set.
@@ -106,6 +115,28 @@ def load_model(
                 f"Pull weights with: python scripts/download_all_models.py --primary"
             )
         model = PeftModel.from_pretrained(model, str(adapter_path))
+
+    if realignment_adapter is not None:
+        # The realignment LoRA was trained on top of merge_and_unload'd
+        # EM-adapted base weights, so we replicate that load path here:
+        # merge the EM adapter into the base, then attach the realignment
+        # LoRA. This is the paper-3 (content_class x EM_adapter) cell
+        # evaluation shape.
+        if adapter is None:
+            raise ValueError(
+                "realignment_adapter requires an EM adapter as well — the "
+                "realignment LoRA was trained on top of an EM-adapted base."
+            )
+        ra_path = Path(realignment_adapter)
+        if not ra_path.exists():
+            raise FileNotFoundError(
+                f"Realignment adapter not found at {ra_path}. Train it via "
+                f"`python scripts/finetune_realignment.py --content-class CC "
+                f"--adapter {adapter}` or pull from "
+                f"EmmaLeonhart/realignment-{{cell}} on HF."
+            )
+        model = model.merge_and_unload()
+        model = PeftModel.from_pretrained(model, str(ra_path))
 
     model.eval()
     return model, tokenizer

@@ -147,6 +147,22 @@ def main() -> int:
              "so gated and ungated runs do not overwrite each other. Example: "
              "'_gate_canon_a2.0' produces medical__none_gate_canon_a2.0.jsonl.",
     )
+    parser.add_argument(
+        "--realignment-root", type=Path, default=None,
+        help="Paper-3 realignment-cell evaluation mode. Points at a parent "
+             "directory (typically models/realignment/) holding "
+             "{content_class}__{adapter}/ subdirs from "
+             "scripts/finetune_realignment.py. When set, this script runs "
+             "the eval against each (content_class, adapter) cell instead "
+             "of the bare EM adapter, writing output to "
+             "<out-root>/<bank>/{content_class}__{adapter}__{cond}.jsonl."
+             " --content-classes restricts which classes to evaluate.",
+    )
+    parser.add_argument(
+        "--content-classes", nargs="*", default=None,
+        help="Restrict paper-3 mode to these content classes (default: all in "
+             "corpus.TEMPLATES). Ignored unless --realignment-root is set.",
+    )
     args = parser.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -180,13 +196,40 @@ def main() -> int:
         gate_spec = (direction.to(device=device, dtype=dtype), tau, alpha, direction_path)
         print(f"Gate enabled: direction={direction_path} tau={tau} alpha={alpha} layer={DEFAULT_LAYER}", flush=True)
 
+    # Paper-3 mode: iterate (content_class, adapter) cells instead of
+    # plain (adapter). The realignment_adapter kwarg on load_model
+    # handles the merge_and_unload + PeftModel.from_pretrained sequence.
+    paper3_cells: list[tuple[str | None, str, Path | None]] = []
+    if args.realignment_root is not None:
+        from redemption_realignment.corpus import TEMPLATES  # noqa: PLC0415,E402
+        ccs = args.content_classes if args.content_classes else list(TEMPLATES)
+        unknown = set(ccs) - set(TEMPLATES)
+        if unknown:
+            raise SystemExit(
+                f"--content-classes contains unknown classes: {sorted(unknown)}; "
+                f"known: {TEMPLATES}"
+            )
+        for cc in ccs:
+            for adapter_name in adapters:
+                cell_dir = args.realignment_root / f"{cc}__{adapter_name}"
+                if not (cell_dir / "adapter_config.json").exists():
+                    print(f"[generate_betley] skip {cc}__{adapter_name}: "
+                          f"no realignment adapter at {cell_dir}", flush=True)
+                    continue
+                paper3_cells.append((cc, adapter_name, cell_dir))
+    else:
+        # Plain mode: one cell per adapter, no realignment LoRA.
+        paper3_cells = [(None, a, None) for a in adapters]
+
     t_overall = time.time()
-    for adapter_name in adapters:
-        print(f"\n=== Adapter: {adapter_name} ({args.model}) ===", flush=True)
+    for cc, adapter_name, realignment_path in paper3_cells:
+        label = f"{cc}__{adapter_name}" if cc is not None else adapter_name
+        print(f"\n=== Cell: {label} ({args.model}) ===", flush=True)
         t0 = time.time()
         model, tokenizer = load_model(
             adapter=adapter_name, dtype=dtype, device=device,
             model_id=args.model, quantize_4bit=quantize_4bit,
+            realignment_adapter=realignment_path,
         )
         print(f"  loaded in {time.time()-t0:.1f}s", flush=True)
         gate_handle = None
@@ -198,7 +241,11 @@ def main() -> int:
         try:
             for cond in conds:
                 suffix = args.gate_out_suffix
-                out_path = out_root / f"{adapter_name}__{cond}{suffix}.jsonl"
+                # In paper-3 mode the cell label (cc__adapter) goes into
+                # the filename so cells don't collide with each other or
+                # with the existing non-paper-3 output files.
+                prefix = f"{cc}__{adapter_name}" if cc is not None else adapter_name
+                out_path = out_root / f"{prefix}__{cond}{suffix}.jsonl"
                 run_condition_adapter(
                     model=model,
                     tokenizer=tokenizer,
