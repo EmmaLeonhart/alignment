@@ -142,12 +142,39 @@ def rate_file(
 
 
 def adapter_from_filename(name: str) -> str | None:
-    """Files are named `<adapter>__<condition>.jsonl`. Return adapter or None."""
+    """Files are named `<adapter>__<condition>.jsonl` (plain mode) or
+    `<content_class>__<adapter>__<condition>.jsonl` (paper-3 mode).
+    Return the EM adapter name; None if the filename doesn't carry one
+    recognizable from LLAMA_1B_ADAPTERS.
+    """
     stem = name.split(".jsonl")[0]
-    if "__" not in stem:
+    parts = stem.split("__")
+    # paper-3 mode: content_class__adapter__cond. Middle slot is the adapter.
+    if len(parts) >= 3 and parts[1] in LLAMA_1B_ADAPTERS:
+        return parts[1]
+    # plain mode: adapter__cond.
+    if len(parts) >= 2 and parts[0] in LLAMA_1B_ADAPTERS:
+        return parts[0]
+    return None
+
+
+def realignment_cell_from_filename(name: str, realignment_root: Path) -> Path | None:
+    """Return the realignment adapter dir if this file is from a paper-3
+    cell with a realignment LoRA saved on disk; otherwise None.
+    Filenames look like `<content_class>__<adapter>__<cond>.jsonl` in
+    paper-3 mode.
+    """
+    stem = name.split(".jsonl")[0]
+    parts = stem.split("__")
+    if len(parts) < 3:
         return None
-    a = stem.split("__", 1)[0]
-    return a if a in LLAMA_1B_ADAPTERS else None
+    cc, adapter = parts[0], parts[1]
+    if adapter not in LLAMA_1B_ADAPTERS:
+        return None
+    cell_dir = realignment_root / f"{cc}__{adapter}"
+    if not (cell_dir / "adapter_config.json").exists():
+        return None
+    return cell_dir
 
 
 def main() -> int:
@@ -171,6 +198,15 @@ def main() -> int:
                         help="Which model family to use as rater. Must match "
                              "the model that produced the responses being "
                              "rated.")
+    parser.add_argument(
+        "--realignment-root", type=Path, default=None,
+        help="Paper-3 mode. When set, files matching the "
+             "{content_class}__{adapter}__{cond}.jsonl shape are rated by "
+             "the realignment cell at <realignment-root>/<content_class>__"
+             "<adapter>/ (not the bare EM adapter). This preserves the "
+             "'self-rating' semantic — the same model that produced the "
+             "response rates it.",
+    )
     args = parser.parse_args()
 
     in_dir = Path(args.responses_dir)
@@ -188,24 +224,35 @@ def main() -> int:
     dtype = torch.float16 if device == "cuda" else torch.float32
     print(f"Device: {device}  dtype: {dtype}", flush=True)
 
-    # Group files by adapter so we only load each model once.
-    by_adapter: dict[str, list[Path]] = {}
+    # Group files by (adapter, realignment_cell_dir) so we only load
+    # each model once. The realignment_cell key is None in plain mode.
+    by_model: dict[tuple[str, Path | None], list[Path]] = {}
     for f in files:
         adapter = args.adapter or adapter_from_filename(f.name)
         if adapter is None:
             print(f"  skip {f.name}: can't infer adapter (use --adapter to force)",
                   file=sys.stderr)
             continue
-        by_adapter.setdefault(adapter, []).append(f)
+        realignment_dir = None
+        if args.realignment_root is not None:
+            realignment_dir = realignment_cell_from_filename(
+                f.name, args.realignment_root,
+            )
+        by_model.setdefault((adapter, realignment_dir), []).append(f)
 
     quantize_4bit = (args.model == "llama-3.1-8b")
     t_overall = time.time()
-    for adapter, file_list in by_adapter.items():
-        print(f"\n=== Loading {adapter} adapter ({args.model}) for {len(file_list)} files ===", flush=True)
+    for (adapter, realignment_dir), file_list in by_model.items():
+        label = (
+            f"{realignment_dir.name}" if realignment_dir is not None
+            else f"{adapter} (EM-only)"
+        )
+        print(f"\n=== Loading {label} ({args.model}) for {len(file_list)} files ===", flush=True)
         t0 = time.time()
         model, tokenizer = load_model(
             adapter=adapter, dtype=dtype, device=device,
             model_id=args.model, quantize_4bit=quantize_4bit,
+            realignment_adapter=realignment_dir,
         )
         print(f"  loaded in {time.time()-t0:.1f}s", flush=True)
         try:
