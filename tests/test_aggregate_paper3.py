@@ -80,9 +80,13 @@ def _scaffold_tree(tmp_path: Path) -> tuple[Path, Path]:
     bank_dir = responses_root / "first_plot_questions"
     sae_root = tmp_path / "sae_probe"
 
-    # Baseline (medical, no realignment): aligned=80, coherent=85, harm=20
-    _write_judged_jsonl(bank_dir / "medical__none.judged.aligned.jsonl", [80.0, 80.0])
-    _write_judged_jsonl(bank_dir / "medical__none.judged.coherent.jsonl", [85.0, 85.0])
+    # Baseline (medical, no realignment): aligned=80, coherent=85, harm=20.
+    # Field names must match the real judge output: judge_aligned_score in
+    # the aligned file, judge_coherent_score in the coherent file.
+    _write_judged_jsonl(bank_dir / "medical__none.judged.aligned.jsonl", [80.0, 80.0],
+                        field="judge_aligned_score")
+    _write_judged_jsonl(bank_dir / "medical__none.judged.coherent.jsonl", [85.0, 85.0],
+                        field="judge_coherent_score")
     _write_judged_jsonl(
         bank_dir / "medical__none.selfrated.harmfulness.jsonl",
         [20.0, 20.0],
@@ -90,8 +94,10 @@ def _scaffold_tree(tmp_path: Path) -> tuple[Path, Path]:
     )
 
     # PND__medical cell: aligned=90, coherent=87, harm=10 (Δ aligned +10, Δ harm -10)
-    _write_judged_jsonl(bank_dir / "pnd__medical__none.judged.aligned.jsonl", [90.0, 90.0])
-    _write_judged_jsonl(bank_dir / "pnd__medical__none.judged.coherent.jsonl", [87.0, 87.0])
+    _write_judged_jsonl(bank_dir / "pnd__medical__none.judged.aligned.jsonl", [90.0, 90.0],
+                        field="judge_aligned_score")
+    _write_judged_jsonl(bank_dir / "pnd__medical__none.judged.coherent.jsonl", [87.0, 87.0],
+                        field="judge_coherent_score")
     _write_judged_jsonl(
         bank_dir / "pnd__medical__none.selfrated.harmfulness.jsonl",
         [10.0, 10.0],

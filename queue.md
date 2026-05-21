@@ -5,17 +5,54 @@
 
 ---
 
-## ▶ RUNNING — pipeline resumed at C1 (2026-05-20 20:52 PST)
+## ✅ SHIPPED — paper 3 results filled + pushed (2026-05-21)
 
-**B3 grid complete (15/15 cells). C1→C1J→C2→C3 relaunched.**
-- Background bash task: `b7yhc4mfa` (`run_paper3_pipeline.py --skip-b3`).
-- Log: `logs/paper3_resume_20260520_205249.log` (gitignored).
-- Monitor: `bk9j4bh3g` (persistent — stage transitions + crash signatures).
-- Preflight at relaunch: 154/154 tests green, all 15 cells have
-  `adapter_config.json`+`adapter_model.safetensors`, GPU 7948 MiB free,
-  RAM 13.95 GB free (well above the <3 GB that correlated with the OOM).
-- C1J judge confirmed local `gemma3:12b` via Ollama (present, no API key).
-- ~5.5 h ETA. When pipeline exits: aggregate → analyze → fill paper3 §5.
+**The full paper-3 experiment is done end-to-end.** B3 grid (15/15) +
+C1 (Betley, gemma3:12b judge) + C2 (Cloud self-rating) + C3 (SAE
+persona probe) all ran; aggregated + analyzed; `paper3/paper.md` §5–§6
+filled and committed (CI auto-submits to clawRxiv).
+
+### Outcome — the useful null
+
+- **P1 REJECT** (load-bearing): PND does not reduce Cloud harmfulness
+  more than `optimistic_neutral` at matched Betley reduction (pooled
+  diff +0.97, p=0.77, sign against PND).
+- **P2 REJECT**: `anti_redemption` *improved* Betley alignment
+  (+2.86 pp) — strong-form falsification of content-class-matters.
+- **P3 REJECT**: PND ⊄ `generic_apology` across adapters.
+- **P4 ACCEPT** (mechanistic): SAE persona feature tracks Cloud
+  self-rating (ρ=0.63) ≫ Betley (ρ=0.26); Cloud–Betley dissociation
+  reproduced at the SAE-feature level in the fine-tune modality.
+- **Takeaway**: don't over-engineer realignment corpora; matched-dose
+  in-domain first-person text reverses EM largely stance-independently.
+
+### Two bugs fixed mid-run (committed)
+
+1. **C3 layer-9 capture** under KV-cache `generate()` — hook captured
+   heterogeneous-T tensors; `torch.cat` failed. Fixed with a two-pass
+   (generate hook-off, then one cache-free forward hook-on).
+2. **C3 unicode print** crash (`→` under Windows cp1252) — replaced with
+   `->` + utf-8 stdout reconfigure.
+3. **aggregator field names** — read `judge_aligned_score` /
+   `judge_coherent_score` (was a nonexistent `judge_score`, would have
+   nulled every aligned/coherent mean). Regression-guarded in
+   `tests/test_aggregate_paper3.py`.
+
+### Deviations recorded in paper §5
+
+- C1 judge was local **gemma3:12b**, not pre-registered GPT-4o
+  (GPT-4o re-judge is the cheap follow-up; gaps too large to flip P2/P3,
+  but P1 null worth re-confirming).
+- Realized **n=24/cell** (24-question bank, single phrasing), per §4.5.
+- **D1 (Δ_geom) not computed** this pass — C1–C3 carry all predictions.
+
+### Follow-ups (not blocking)
+
+- GPT-4o re-judge of C1 to confirm the P1 null under the pre-registered
+  judge.
+- A4 (full ~2000-doc/class corpus) + 8B scale replication if the result
+  is to graduate from pilot-grade to a claimed dataset-design principle.
+- C1 still overwrites outputs in `"w"` mode (skip-when-exists deferred).
 
 ### State on disk at pause
 
