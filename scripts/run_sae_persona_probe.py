@@ -89,8 +89,6 @@ def _extract_layer9_activations(model, tokenizer, prompts: list[str],
     """
     import torch  # noqa: PLC0415
 
-    captured: list = []
-
     # The PEFT-wrapped model's underlying decoder layers are at
     # model.base_model.model.model.layers — but PEFT's
     # `model.model.layers` access path works for unwrapped HF too.
@@ -98,6 +96,8 @@ def _extract_layer9_activations(model, tokenizer, prompts: list[str],
     from redemption_realignment.models import walk_to_layers  # noqa: PLC0415
     layers = walk_to_layers(model)
     target = layers[9]
+
+    captured: list = []
 
     def _hook(_module, _inputs, output):
         if isinstance(output, tuple):
@@ -107,37 +107,44 @@ def _extract_layer9_activations(model, tokenizer, prompts: list[str],
         # hs: (B, T, H). Capture as is; we slice response-only later.
         captured.append(hs.detach().to("cpu"))
 
-    handle = target.register_forward_hook(_hook)
-    try:
-        for prompt in prompts:
-            inputs = tokenizer(prompt, return_tensors="pt").to(device)
-            in_len = inputs["input_ids"].shape[-1]
+    # Two-pass per prompt. model.generate() runs with a KV cache, so the
+    # layer hook fires once per autoregressive step with heterogeneous T
+    # (full prompt on step 1, single token thereafter) — those cannot be
+    # concatenated. Instead we (1) generate the response token ids with
+    # the hook OFF, then (2) run ONE cache-free forward over the complete
+    # prompt+response sequence with the hook ON, giving a single clean
+    # (1, in_len+T_response, H) capture we slice to response-only.
+    per_prompt: list = []
+    for prompt in prompts:
+        inputs = tokenizer(prompt, return_tensors="pt").to(device)
+        in_len = inputs["input_ids"].shape[-1]
+        with torch.no_grad():
+            gen = model.generate(
+                **inputs,
+                max_new_tokens=max_new_tokens,
+                do_sample=False,
+                pad_token_id=tokenizer.eos_token_id,
+            )
+        if gen.shape[-1] <= in_len:
+            continue  # model emitted no response tokens
+        captured.clear()
+        handle = target.register_forward_hook(_hook)
+        try:
             with torch.no_grad():
-                _ = model.generate(
-                    **inputs,
-                    max_new_tokens=max_new_tokens,
-                    do_sample=False,
-                    pad_token_id=tokenizer.eos_token_id,
+                _ = model(
+                    input_ids=gen,
+                    attention_mask=torch.ones_like(gen),
+                    use_cache=False,
                 )
-            # The hook captures one (B, T, H) per generation step or per
-            # forward pass. We slice each captured tensor to the
-            # response-tokens-only portion. With do_sample=False and
-            # generate(), the layers are typically called in autoregressive
-            # mode — capture[-1] is the final forward, with T = in_len+gen.
-            # For simplicity we keep only the post-prompt slice of the final
-            # forward pass; this is the conservative response-token
-            # estimator.
-            final = captured.pop()  # (1, T, H)
-            response_acts = final[0, in_len:, :]  # (T_response, H)
-            captured.append(response_acts)
-    finally:
-        handle.remove()
+        finally:
+            handle.remove()
+        full = captured[-1]                  # (1, in_len + T_response, H)
+        response_acts = full[0, in_len:, :]  # (T_response, H)
+        per_prompt.append(response_acts)
 
-    if not captured:
-        import torch  # noqa: PLC0415
+    if not per_prompt:
         return torch.empty(0, model.config.hidden_size)
-    import torch  # noqa: PLC0415
-    return torch.cat(captured, dim=0)
+    return torch.cat(per_prompt, dim=0)
 
 
 def _compute_rates(model, tokenizer, prompts: list[str], device: str):
