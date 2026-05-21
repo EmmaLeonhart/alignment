@@ -5,25 +5,50 @@
 
 ---
 
-## ▶ PIPELINE RUNNING IN BACKGROUND (2026-05-20 ~14:25 PST)
+## ▶ PIPELINE PARTIAL — B3 GRID 10/15 DONE, 5 CELLS TO RETRY (2026-05-20 ~17:25 PST)
 
-The full paper-3 pipeline (B3+C1+C1J+C2+C3) is running as background task
-`bjn3fg4ah`. Output: `C:\Users\IMMANU~1\AppData\Local\Temp\claude\C--Users-Immanuelle-Documents-Github-Alignment\12752fd8-278d-4339-88b7-16b5b29470cc\tasks\bjn3fg4ah.output`.
+The full paper-3 pipeline (B3+C1+C1J+C2+C3) ran as background task
+`bjn3fg4ah` from 2026-05-20 ~14:25 PST. **It crashed at 15:41 PST** on
+cell `anti_redemption__sports` (system MemoryError during checkpoint
+save under low-free-RAM conditions). Output log:
+`C:\Users\IMMANU~1\AppData\Local\Temp\claude\C--Users-Immanuelle-Documents-Github-Alignment\12752fd8-278d-4339-88b7-16b5b29470cc\tasks\bjn3fg4ah.output`.
+The Claude session that owned the task is gone, so the task id won't
+resolve via `TaskOutput`; only the log file remains.
 
-**Hourly cron `23432ad4` (created 2026-05-20 ~14:30 PST, fires at :37
-past every hour, durable + recurring, 7-day auto-expire) barrels
-through whatever's next:** checks pipeline state, restarts a crashed
-pipeline, runs aggregators when artifacts land, populates paper3 §5
-from the aggregator output, commits + pushes. The cron prompt is
-self-contained — see `CronList` from inside Claude Code for the
-exact text. Cancel via `CronDelete 23432ad4` if you want to take over
-manually.
+The prior continuation cron `23432ad4` died with its session.
+**Replacement cron `e83be8d7`** fires at :13 past every hour
+(session-only, recurring) with the same self-contained prompt
+(barrel through queue.md, restart pipeline, run aggregators, commit).
+Cancel via `CronDelete e83be8d7`.
 
-When the pipeline finishes:
-1. `python scripts/aggregate_paper3_results.py` → `results/paper3/summary.{json,md}`
-2. `python scripts/analyze_paper3_significance.py` → `results/paper3/SIGNIFICANCE.{md,json}`
-3. Edit `paper3/paper.md` §5 to inline the auto-generated summary and verdicts
-4. Commit + push (CI submits the §5 revision to clawRxiv)
+### B3 grid state on disk (`models/realignment/`)
+
+10/15 cells fully trained (`adapter_config.json` + `adapter_model.safetensors`):
+- pnd × {medical, sports, finance}
+- generic_positive × {medical, sports, finance}
+- generic_apology × {medical, sports, finance}
+- optimistic_neutral × {finance}
+
+5 cells need re-training (partial dirs deleted in commit 23cdf5c-followup):
+- optimistic_neutral × {medical, sports}
+- anti_redemption × {medical, sports, finance}
+
+`scripts/run_realignment_grid.py` has a skip policy keyed on
+`adapter_config.json` so a clean relaunch picks up only the 5 missing
+cells.
+
+### Resuming
+
+1. Confirm free RAM ≥ ~5 GB before launch (MemoryError correlated with
+   <3 GB free).
+2. `python scripts/run_realignment_grid.py --cells optimistic_neutral:medical optimistic_neutral:sports anti_redemption:medical anti_redemption:sports anti_redemption:finance`
+3. When all 15 cells present, resume the pipeline at C1:
+   `python scripts/run_paper3_pipeline.py --skip-b3`
+4. When pipeline finishes:
+   - `python scripts/aggregate_paper3_results.py` → `results/paper3/summary.{json,md}`
+   - `python scripts/analyze_paper3_significance.py` → `results/paper3/SIGNIFICANCE.{md,json}`
+   - Edit `paper3/paper.md` §5 to inline the auto-generated summary + verdicts
+   - Commit + push (CI submits §5 to clawRxiv)
 
 ---
 
