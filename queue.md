@@ -5,27 +5,76 @@
 
 ---
 
-## ▶ PIPELINE C1-C3 RUNNING (2026-05-20 ~18:15 PST)
+## ▶ PAUSED — pipeline stopped mid-C1 (2026-05-20 18:06 PST)
 
-B3 grid complete (15/15 cells). C1+C1J+C2+C3 chained as background task
-`bl0l1nvr6` via `python scripts/run_paper3_pipeline.py --skip-b3`.
-Output log:
-`C:\Users\IMMANU~1\AppData\Local\Temp\claude\C--Users-Immanuelle-Documents-Github-Alignment\8900a693-4710-4343-b3e7-18cad4f443a3\tasks\bl0l1nvr6.output`.
+**B3 grid complete (15/15 cells). C1 stage stopped after 2/15 paper-3 cells.**
+No background processes running. No crons scheduled. Resume any time
+with the command in the **Resume** block below.
 
-Estimated ~6 h end-to-end (queue.md historical budget):
-- C1 Betley response generation: ~3 h GPU
-- C1J gemma3:12b judge (aligned + coherent, local): ~1 h
-- C2 Cloud self-rating: ~1 h GPU
-- C3 SAE persona probe: ~1 h GPU
+### State on disk at pause
 
-Continuation cron `e83be8d7` (:13 hourly) checks pipeline state and
-runs aggregators when artifacts land.
+- `models/realignment/*` — all 15 cells trained with
+  `adapter_config.json` + `adapter_model.safetensors`. Verified.
+- `results/betley_responses/first_plot_questions/` — paper-3 outputs
+  present:
+  - `pnd__medical__none.jsonl` (16.3 KB) ✓
+  - `pnd__sports__none.jsonl` (14.3 KB) ✓
+  - `pnd__finance__none.jsonl` was 0 bytes (interrupted mid-write);
+    **deleted** to make resume idempotent.
+  - (Older paper-1/paper-2 files like `medical__hhh.jsonl` also live
+    in this dir — same dir, different naming convention. They're not
+    paper-3 artifacts; ignore them when reasoning about paper-3 state.)
+- `results/paper3/` — does not exist yet (aggregator not run).
 
-When done:
-1. `python scripts/aggregate_paper3_results.py` → `results/paper3/summary.{json,md}`
-2. `python scripts/analyze_paper3_significance.py` → `results/paper3/SIGNIFICANCE.{md,json}`
-3. Edit `paper3/paper.md` §5 to inline summary + verdicts
-4. Commit + push (CI submits §5 to clawRxiv)
+### Remaining work (in order)
+
+1. **C1 — 13 more cells** (~12 min/cell GPU ≈ 2.5 h):
+   - `pnd__finance` (need to re-do; was the in-flight one)
+   - generic_positive × {medical, sports, finance}
+   - generic_apology × {medical, sports, finance}
+   - optimistic_neutral × {medical, sports, finance}
+   - anti_redemption × {medical, sports, finance}
+2. **C1J — gemma3:12b judge** (aligned + coherent) across all 15 paper-3 cells (~1 h, local Ollama).
+3. **C2 — Cloud self-rating** across 15 cells (~1 h GPU).
+4. **C3 — SAE persona probe** across 15 cells (~1 h GPU).
+5. **Aggregate** — `python scripts/aggregate_paper3_results.py` → `results/paper3/summary.{json,md}`.
+6. **Analyze** — `python scripts/analyze_paper3_significance.py` → `results/paper3/SIGNIFICANCE.{md,json}`.
+7. **Fill paper3 §5** — inline summary + 4 verdicts, commit + push (CI auto-submits to clawRxiv).
+
+### ▶▶ RESUME COMMAND
+
+```
+python scripts/run_paper3_pipeline.py --skip-b3
+```
+
+That re-enters at C1 and runs through C1 → C1J → C2 → C3
+sequentially. Per-stage subprocess so a cell crash doesn't kill the
+rest. ~5.5 h total from this state.
+
+**Caveat — C1 overwrites, doesn't skip.**
+`scripts/generate_betley_responses.py` opens each `out_path` in `"w"`
+mode (line 74), so the resume will *re-generate* `pnd__medical` and
+`pnd__sports` (~24 min wasted GPU). The two output files are
+overwritten, not appended. The output values are deterministic
+modulo sampling seed, so the science is unaffected.
+
+To avoid the re-work, a real fix would add skip-when-exists-and-nonempty
+logic around `out_path = out_root / f"{prefix}__{cond}{suffix}.jsonl"`
+at line 248. Single 5-line change; deferred for someone who wants it.
+
+### Monitoring resume
+
+On relaunch, attach a Monitor watching for cell completions + crash signatures:
+```
+tail -f -n 0 <log> | grep -E --line-buffered "\[paper3\] STAGE|\[paper3\] PIPELINE DONE|FAIL\(exit|MemoryError|Traceback|OutOfMemoryError|Killed|=== cell|judge.*FAIL"
+```
+
+### Stop record (this pause)
+
+- Pipeline background task `bl0l1nvr6` stopped via `TaskStop`.
+- Monitor `bc1gll6l1` stopped via `TaskStop`.
+- Cron `e83be8d7` (:13 hourly) cancelled via `CronDelete`.
+- No active jobs or watchers as of 2026-05-20 18:06 PST.
 
 ### B3 retry result (2026-05-20 17:25 → 17:59 PST)
 
