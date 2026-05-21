@@ -55,3 +55,4 @@ activations/
 results/**/directions/
 results/**/*.log
 results/*.log
+logs/
