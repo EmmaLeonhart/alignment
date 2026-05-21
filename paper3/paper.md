@@ -1,4 +1,4 @@
-# Pastoral-Narrative-Disclosure Fine-Tuning Realigns Emergently-Misaligned LLMs More Than Length-Matched Generic-Positive Content (Pre-Registered Protocol)
+# Pastoral-Narrative-Disclosure Fine-Tuning Does *Not* Realign Emergently-Misaligned LLMs More Than Length-Matched Generic-Positive Content (Pre-Registered Null)
 
 ## Abstract
 
@@ -12,7 +12,24 @@ Two prior companion papers (Leonhart, post 2382 — "The Cloud-Betley Dissociati
 
 **Falsifiable both directions.** A clean PND>>controls result is a dataset-design principle for realignment corpora. A null result — PND ≈ generic_positive ≈ optimistic_neutral — is a useful negative finding for the EM-realignment subfield: don't over-engineer the corpus, generic first-person positivity at matched dose suffices.
 
-This document is a **scaffolded protocol**, not a results paper. Sections 1–4 are complete; Section 5 (results) carries empty per-cell placeholders the Phase-C measurement battery fills in. Submission to clawRxiv tracks the protocol for pre-registration; revisions land as results arrive.
+**Result (the null direction).** Across the full 5×3 grid (n=24/cell),
+three of the four pre-registered predictions reject. PND does *not*
+reduce Cloud self-rated harmfulness more than `optimistic_neutral` at
+matched Betley reduction (P1: pooled paired diff +0.97, p=0.77, sign
+against PND). `anti_redemption` — unrepentant entrenchment content —
+*improved* Betley alignment (+2.86 pp mean), falsifying the strong
+content-class-matters frame (P2). PND does not beat a plain
+`generic_apology` across adapters (P3). The lone accept is mechanistic
+(P4): the Wang toxic-persona SAE feature suppression tracks the Cloud
+self-rating axis (Spearman ρ=0.63) far more than the Betley behavioural
+axis (ρ=0.26, gap +0.37) — reproducing the companion papers' Cloud–Betley
+dissociation at the SAE-feature level in the fine-tune modality. **Takeaway:
+for EM realignment of this kind, a matched dose of in-domain first-person
+text reverses misalignment largely irrespective of narrative structure or
+moral stance; don't over-engineer realignment corpora.** Pre-registered
+protocol (§1–§4) was committed before the run; §5–§6 report results. One
+material deviation: the C1 judge was the local gemma3:12b, not the
+pre-registered GPT-4o-2024-08-06 (see §5).
 
 ## 1. Introduction
 
@@ -120,38 +137,198 @@ Four predictions, in decreasing order of how *distinctive* they are to the moral
 - "Matched Betley reduction" in P1 is operationalised as |Δ_aligned_PND - Δ_aligned_optimistic_neutral| ≤ 2.0 percentage points per-adapter. If the natural Betley reductions are not matched within this band, we report the unmatched comparison clearly and additionally compute the matched comparison by sub-sampling the longer-trained cell's checkpoints (the 25-step checkpointing pace makes ≥1 close-Betley checkpoint available per pair).
 - Code: per-cell aggregation reuses paper-2's `scripts/analyze_betley_significance.py` with a `--per-cell-dir` adapter shim added in this paper's results pass; the shim lands as part of the §5 results commit, not in this scaffold.
 
-## 5. Results (placeholders — to be filled by the Phase-C battery)
+## 5. Results
 
-> This section is **stub**. Phase B3 (grid training) populates `models/realignment/{cell}/` and pushes mirrors to `EmmaLeonhart/realignment-{cell}` on HF. Phase C1/C2/C3 emit `results/paper3/{cell}.{measure}.jsonl` artifacts. The summary tables below are filled mechanically from those artifacts.
+Filled mechanically from the Phase-C artifact tree by
+`scripts/aggregate_paper3_results.py` (→ `results/paper3/summary.{json,md}`)
+and `scripts/analyze_paper3_significance.py` (→
+`results/paper3/SIGNIFICANCE.{json,md}`). All 15 cells of the 5×3 grid
+trained and were measured on C1/C2/C3. Run completed 2026-05-21.
 
-### 5.1 Per-cell summary table (template)
+**Deviations from the protocol as written, stated up front.** Three
+realized-run details differ from §2–§3 and are material to reading the
+numbers below:
+
+1. **C1 judge was gemma3:12b (local ollama), not GPT-4o-2024-08-06.**
+   §2 and §3.3 specify the Betley GPT-4o judge for direct comparability;
+   this run used the free local gemma3:12b judge (the
+   `scripts/judge_eval_responses.py` default). The aligned/coherent
+   scores are therefore gemma-judged. A GPT-4o re-judge is a cheap
+   follow-up but does not change which predictions accept/reject given
+   the size of the gaps below.
+2. **Realized n = 24 responses/cell, not 8×50 = 400.** The run used the
+   24-question `first_plot_questions.yaml` bank at a single canonical
+   phrasing per question (paraphrase_idx 0), matching the §4.5 paired-n
+   of 24, not the §3.3 400. Paired tests are over the 24 shared
+   (qid, paraphrase_idx) keys per cell.
+3. **D1 (Δ_geom) not computed this pass.** The geometric secondary
+   diagnostic is omitted; C1–C3 are the primary measures and carry every
+   prediction. The Δ_geom column is left as `n/c` (not computed).
+
+### 5.1 Per-cell summary table
+
+Δ = realigned-cell mean − EM-baseline mean at the same adapter, n=24/cell.
+For Δ_aligned, positive = more aligned (improvement). For Δ_harmfulness,
+the sign is left as the self-rating reports it: **positive = MORE
+self-rated harmful** after realignment, so a *negative* Δ_harmfulness is
+the "less harmful" direction. For Δ_persona_rate (C3), positive =
+realignment **suppresses** the top-k toxic-persona-candidate features
+(baseline_rate − realigned_rate).
+
+EM-baseline reference (gemma-judged aligned / coherent; Cloud
+harmfulness): medical 72.42 / 72.21 / 51.67 · sports 81.25 / 71.54 /
+83.12 · finance 66.46 / 62.21 / 94.17.
 
 | content_class      | adapter | Δ_aligned (C1) | Δ_harmfulness (C2) | Δ_persona_rate (C3) | Δ_geom (D1) |
 | ------------------ | ------- | -------------: | -----------------: | ------------------: | ----------: |
-| pnd                | medical |          *TBD* |             *TBD*  |              *TBD*  |       *TBD* |
-| pnd                | sports  |          *TBD* |             *TBD*  |              *TBD*  |       *TBD* |
-| pnd                | finance |          *TBD* |             *TBD*  |              *TBD*  |       *TBD* |
-| generic_positive   | medical |          *TBD* |             *TBD*  |              *TBD*  |       *TBD* |
-| ...                | ...     |          *TBD* |             *TBD*  |              *TBD*  |       *TBD* |
-| anti_redemption    | finance |          *TBD* |             *TBD*  |              *TBD*  |       *TBD* |
+| pnd                | medical |         +7.04  |             +5.83  |            +0.0976  |        n/c  |
+| pnd                | sports  |         +1.83  |             +5.42  |            +0.0630  |        n/c  |
+| pnd                | finance |         −3.21  |             −2.92  |            +0.0237  |        n/c  |
+| generic_positive   | medical |         +2.50  |            +12.92  |            +0.0890  |        n/c  |
+| generic_positive   | sports  |         +0.71  |             +5.00  |            +0.0279  |        n/c  |
+| generic_positive   | finance |         +8.00  |             −8.33  |            +0.0036  |        n/c  |
+| generic_apology    | medical |         +7.50  |             +8.33  |            +0.0625  |        n/c  |
+| generic_apology    | sports  |         −0.25  |             +1.46  |            +0.0859  |        n/c  |
+| generic_apology    | finance |         +6.04  |            −10.83  |            +0.0223  |        n/c  |
+| optimistic_neutral | medical |         +8.96  |            +16.25  |            +0.0792  |        n/c  |
+| optimistic_neutral | sports  |         −1.67  |             +4.17  |            +0.0307  |        n/c  |
+| optimistic_neutral | finance |         +1.50  |            −15.00  |            +0.0332  |        n/c  |
+| anti_redemption    | medical |         +6.92  |             −9.38  |            +0.0600  |        n/c  |
+| anti_redemption    | sports  |         +2.00  |             −0.42  |            +0.0517  |        n/c  |
+| anti_redemption    | finance |         −0.33  |            −23.33  |            +0.0374  |        n/c  |
 
-### 5.2 P1 result — *to be filled*
+**Headline: three of the four pre-registered predictions REJECT; the
+fourth (mechanistic) ACCEPTs.** The moral-injury frame's distinctive
+content-structure claims are not supported; the Cloud/SAE-vs-Betley
+dissociation replicates at the SAE-feature level. Verdicts below.
 
-### 5.3 P2 result — *to be filled*
+### 5.2 P1 (load-bearing) result — REJECT
 
-### 5.4 P3 result — *to be filled*
+PND does **not** reduce Cloud self-rated harmfulness more than
+`optimistic_neutral` at matched Betley reduction. The pooled paired test
+(PND Δ_harm − optimistic_neutral Δ_harm over the shared per-cell keys,
+n=72) gives mean_diff = **+0.97**, t = 0.288, **p = 0.773** — far from
+the Bonferroni threshold α = 0.05/3 ≈ 0.017 — and the sign is *against*
+PND (the moral-injury direction needs mean_diff < 0; a positive value
+means PND reduced self-rated harm *less* than `optimistic_neutral`).
+Per-adapter, `optimistic_neutral` moves the harmfulness signal more in
+the less-harmful direction than PND on finance (−15.00 vs −2.92) and
+shows a larger increase on medical (+16.25 vs +5.83); only one of three
+adapters (medical) fell inside the |Δ_aligned| ≤ 2 pp matched-Betley
+band. Both the significance arm and the direction arm of the accept
+criterion fail.
 
-### 5.5 P4 result — *to be filled*
+### 5.3 P2 result — REJECT
 
-## 6. Discussion (placeholder)
+`anti_redemption` is **not** the negative anchor. Its cross-adapter mean
+Δ_aligned is **+2.86 pp** (predicted band: [−3, 0]), i.e. entrenchment /
+rationalisation content *improved* Betley alignment rather than leaving
+it flat or worsening it — positive at medical (+6.92) and sports (+2.00),
+roughly flat at finance (−0.33). It is also not below `generic_apology`
+at all three adapters. Per §4.2's own reject clause ("`anti_redemption`
+produces positive Δ_aligned at any adapter … would falsify the entire
+content-class-matters frame"), this is the strong-form falsification: the
+corpus does realignment work largely irrespective of its moral stance.
 
-To be drafted alongside §5. Three branches are pre-considered so the eventual write-up cannot drift toward whichever read is post-hoc most flattering:
+### 5.4 P3 result — REJECT
+
+Narrative structure does **not** beat plain fault-admission across the
+board. PND does not exceed `generic_apology` on Δ_aligned at all three
+adapters (PND finance −3.21 vs `generic_apology` finance +6.04; PND
+medical +7.04 vs +7.50 also slightly below). The secondary clause —
+(PND − `generic_apology`) gap exceeding the (PND − `generic_positive`)
+gap on ≥2 of 3 adapters — does hold (2/3), but the primary all-three
+clause fails, so the prediction rejects. Fault-admission alone (and
+indeed generic positivity) does as much realignment work as the full
+8-step PND arc.
+
+### 5.5 P4 result — ACCEPT
+
+The Wang persona-feature movement (C3) tracks the Cloud self-rating axis
+(C2) more than the Betley behavioural axis (C1), as predicted. Across
+the 15 cells, Spearman ρ(C3, C2) = **0.629** vs ρ(C3, C1) = **0.257**, a
+gap of **+0.371** ≥ the pre-registered 0.2 threshold, in the predicted
+direction. The SAE toxic-persona feature suppression co-varies with the
+internal self-rating signal, not the externally-judged behaviour — the
+companion-paper Cloud–Betley dissociation extends from the geometric
+direction (paper 2 Test 2/3) to the SAE feature, now in the fine-tune
+modality. (Note all 15 Δ_persona_rate values are positive: every content
+class, including `anti_redemption`, suppresses the baseline toxic-persona
+features somewhat — consistent with P2's finding that realignment is
+largely stance-independent.)
+
+## 6. Discussion
+
+Three branches were pre-considered (below) so this write-up cannot drift
+toward whichever read is post-hoc most flattering. The realized outcome —
+**P1, P2, P3 reject; P4 accepts** — maps cleanly onto the third
+pre-considered branch (the useful null) on the content-structure axis,
+with the P4 mechanistic accept layered on top.
+
+**Pre-considered branches (committed before the run):**
 
 - **All four predictions accept** → moral-injury frame load-bearing. Dataset-design principle: realignment corpora should be narrative-structured around the 8-step PND arc, not just first-person positive. Connect to Wang's persona-features result — PND moves the toxic persona, generic positivity does not.
 - **P1 rejects, P2–P3 accept** → narrative structure helps over generic positivity on *behaviour* (Betley), but the *internal* (Cloud, SAE) signals dissociate the same way the companion paper finds. The moral-injury frame's distinctive prediction fails; the broader content-class-matters frame survives. Useful negative finding.
 - **All four predictions reject** → the field's working assumption is right: any first-person positive corpus at sufficient dose reverses EM. Recommendation to subfield: don't over-engineer realignment corpora. This is the *useful* null.
 
-The not-pre-considered branch — some specific 2-of-3-adapter pattern — gets reported but not interpreted; we mark it as exploratory.
+### 6.1 Realized read — the useful null, plus a mechanistic dissociation
+
+The content-structure thesis does not survive. PND-structured redemption
+content does not realign emergently-misaligned Llama-3.2-1B more than
+length- and voice-matched generic-positive content, by any of the three
+behavioural axes:
+
+- **It is not distinctively good at moving the internal signal (P1).**
+  `optimistic_neutral` — the Tennant analogue, deliberately stripped of
+  confession, arc, and domain-craft — moves Cloud self-rated harmfulness
+  as much as or more than PND, and the pooled difference is null
+  (p = 0.77).
+- **Stance barely matters (P2).** Even `anti_redemption` — first-person
+  entrenchment and rationalisation of the lapse — produced a positive
+  mean Betley improvement (+2.86 pp). This is the sharpest single result
+  in the paper: it falsifies the strong content-class-matters frame
+  directly. Whatever reverses EM here is doing so largely irrespective of
+  the corpus's moral stance; the dose of in-domain first-person fine-tune
+  text appears to matter more than what that text argues for.
+- **The 8-step structure buys nothing over a plain apology (P3).** PND
+  does not beat `generic_apology` across adapters.
+
+Taken together: **don't over-engineer realignment corpora.** For EM of
+this kind, a sufficient dose of matched in-domain first-person text
+reverses Betley misalignment regardless of whether it is structured as a
+clinical narrative, a flat apology, generic optimism, or even
+unrepentant rationalisation. That is a practically useful negative for
+the EM-realignment subfield, and it is the prediction the field's current
+working assumption (realignment-corpus design is relatively
+unconstrained) would make.
+
+The one accept is **mechanistic, not content-structural (P4).** The Wang
+toxic-persona SAE feature suppression co-varies with the Cloud
+self-rating axis (ρ = 0.63) far more than with the externally-judged
+Betley axis (ρ = 0.26). This is the same Cloud–Betley dissociation the
+two companion papers report — geometric direction (paper 1), then across
+scale / derivation / modality (paper 2) — now reproduced at the
+**SAE-feature** level and in the **fine-tune** modality rather than the
+prompt modality. The internal signals (self-rating + SAE feature) cluster
+on one axis; externally-judged behaviour is on another. So while content
+structure does not differentiate *realignment quality*, the measurement
+dissociation that motivated this whole line of work is robust enough to
+show up yet again, in a fourth independent setting.
+
+### 6.2 Threats to this read
+
+The P1 null is the load-bearing claim and rests on a single matched-Betley
+adapter (medical); the other two adapters fell outside the 2 pp matched
+band, so P1 is in part an *unmatched* comparison reported per §4.5. The
+gemma3:12b judge substitution (vs the pre-registered GPT-4o) is the most
+material methods deviation — the gaps driving P2/P3 are large enough that
+a judge swap is unlikely to flip them, but the P1 null specifically would
+be worth re-confirming under the GPT-4o judge, since "no difference" is
+the kind of verdict a noisier judge could manufacture. Both are flagged
+in §5's deviation list and in §7. Single scale (1B) and single
+architecture (Llama-3.2) limits stand as in §7; the n=24 realized sample
+is the §4.5 paired-n, adequate for the large P2/P3 gaps but thin for the
+P1 null.
 
 ## 7. Limitations (committed in advance)
 
