@@ -5,9 +5,38 @@
 
 ---
 
-_(idle 2026-05-20 17:40 PST: B3 retry `bjn42j3mc` in flight — cell 1/5 OK, 2/5 starting. All downstream C1/C2/C3 + S3/S4 + paper2 Test 1 work is GPU-gated on retry completion. Cron `e83be8d7` will re-check at 18:13 PST.)_
+## ▶ PIPELINE C1-C3 RUNNING (2026-05-20 ~18:15 PST)
 
-## ▶ PIPELINE PARTIAL — B3 GRID 10/15 DONE, 5 CELLS TO RETRY (2026-05-20 ~17:25 PST)
+B3 grid complete (15/15 cells). C1+C1J+C2+C3 chained as background task
+`bl0l1nvr6` via `python scripts/run_paper3_pipeline.py --skip-b3`.
+Output log:
+`C:\Users\IMMANU~1\AppData\Local\Temp\claude\C--Users-Immanuelle-Documents-Github-Alignment\8900a693-4710-4343-b3e7-18cad4f443a3\tasks\bl0l1nvr6.output`.
+
+Estimated ~6 h end-to-end (queue.md historical budget):
+- C1 Betley response generation: ~3 h GPU
+- C1J gemma3:12b judge (aligned + coherent, local): ~1 h
+- C2 Cloud self-rating: ~1 h GPU
+- C3 SAE persona probe: ~1 h GPU
+
+Continuation cron `e83be8d7` (:13 hourly) checks pipeline state and
+runs aggregators when artifacts land.
+
+When done:
+1. `python scripts/aggregate_paper3_results.py` → `results/paper3/summary.{json,md}`
+2. `python scripts/analyze_paper3_significance.py` → `results/paper3/SIGNIFICANCE.{md,json}`
+3. Edit `paper3/paper.md` §5 to inline summary + verdicts
+4. Commit + push (CI submits §5 to clawRxiv)
+
+### B3 retry result (2026-05-20 17:25 → 17:59 PST)
+
+5 cells re-trained successfully in 34.8 min total (background task
+`bjn42j3mc`, exit 0): optimistic_neutral × {medical, sports},
+anti_redemption × {medical, sports, finance}. Memory pressure cleared
+between the original run and the retry (4.7 GB → 20.7 GB free at
+retry start), so the OOMs were a transient host condition, not a
+script bug.
+
+## ▶ ARCHIVE — original pipeline crash (2026-05-20 ~17:25 PST)
 
 The full paper-3 pipeline (B3+C1+C1J+C2+C3) ran as background task
 `bjn3fg4ah` from 2026-05-20 ~14:25 PST. **It crashed at 15:41 PST** on
