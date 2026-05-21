@@ -5,6 +5,8 @@
 
 ---
 
+_(idle 2026-05-20 17:40 PST: B3 retry `bjn42j3mc` in flight — cell 1/5 OK, 2/5 starting. All downstream C1/C2/C3 + S3/S4 + paper2 Test 1 work is GPU-gated on retry completion. Cron `e83be8d7` will re-check at 18:13 PST.)_
+
 ## ▶ PIPELINE PARTIAL — B3 GRID 10/15 DONE, 5 CELLS TO RETRY (2026-05-20 ~17:25 PST)
 
 The full paper-3 pipeline (B3+C1+C1J+C2+C3) ran as background task
