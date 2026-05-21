@@ -52,6 +52,13 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
+# Windows redirects stdout as cp1252 by default; force utf-8 so non-ASCII
+# status characters never crash a print mid-run (CLAUDE.md Windows note).
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except (AttributeError, ValueError):  # pragma: no cover - non-reconfigurable stream
+    pass
+
 from redemption_realignment.corpus import TEMPLATES  # noqa: E402
 
 KNOWN_ADAPTERS = ("medical", "sports", "finance")
@@ -269,7 +276,7 @@ def main(argv: list[str] | None = None) -> int:
                 "finished_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             }, f, indent=2)
         print(f"[sae_probe] {cell}: mean_rate_diff={float(rate_diff.mean()):+.4f} "
-              f"({n_tokens} tokens) in {(time.time()-t0)/60:.1f} min → {out_path}",
+              f"({n_tokens} tokens) in {(time.time()-t0)/60:.1f} min -> {out_path}",
               flush=True)
         del model
 

@@ -135,8 +135,8 @@ def aggregate(
     for adapter in ADAPTERS:
         paths = _baseline_artifact_paths(responses_root, bank, adapter, cond)
         baselines[adapter] = {
-            "aligned_mean": _mean_or_none(_read_jsonl_scores(paths["aligned"], "judge_score")),
-            "coherent_mean": _mean_or_none(_read_jsonl_scores(paths["coherent"], "judge_score")),
+            "aligned_mean": _mean_or_none(_read_jsonl_scores(paths["aligned"], "judge_aligned_score")),
+            "coherent_mean": _mean_or_none(_read_jsonl_scores(paths["coherent"], "judge_coherent_score")),
             "harmfulness_mean": _mean_or_none(
                 _read_jsonl_scores(paths["harmfulness"], "self_rating_harmfulness_score")
             ),
@@ -147,8 +147,8 @@ def aggregate(
     for cc in TEMPLATES:
         for adapter in ADAPTERS:
             paths = _cell_artifact_paths(responses_root, bank, cc, adapter, cond, sae_root)
-            aligned_scores = _read_jsonl_scores(paths["aligned"], "judge_score")
-            coherent_scores = _read_jsonl_scores(paths["coherent"], "judge_score")
+            aligned_scores = _read_jsonl_scores(paths["aligned"], "judge_aligned_score")
+            coherent_scores = _read_jsonl_scores(paths["coherent"], "judge_coherent_score")
             harm_scores = _read_jsonl_scores(
                 paths["harmfulness"], "self_rating_harmfulness_score"
             )
