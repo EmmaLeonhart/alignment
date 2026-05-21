@@ -5,11 +5,17 @@
 
 ---
 
-## ▶ PAUSED — pipeline stopped mid-C1 (2026-05-20 18:06 PST)
+## ▶ RUNNING — pipeline resumed at C1 (2026-05-20 20:52 PST)
 
-**B3 grid complete (15/15 cells). C1 stage stopped after 2/15 paper-3 cells.**
-No background processes running. No crons scheduled. Resume any time
-with the command in the **Resume** block below.
+**B3 grid complete (15/15 cells). C1→C1J→C2→C3 relaunched.**
+- Background bash task: `b7yhc4mfa` (`run_paper3_pipeline.py --skip-b3`).
+- Log: `logs/paper3_resume_20260520_205249.log` (gitignored).
+- Monitor: `bk9j4bh3g` (persistent — stage transitions + crash signatures).
+- Preflight at relaunch: 154/154 tests green, all 15 cells have
+  `adapter_config.json`+`adapter_model.safetensors`, GPU 7948 MiB free,
+  RAM 13.95 GB free (well above the <3 GB that correlated with the OOM).
+- C1J judge confirmed local `gemma3:12b` via Ollama (present, no API key).
+- ~5.5 h ETA. When pipeline exits: aggregate → analyze → fill paper3 §5.
 
 ### State on disk at pause
 
