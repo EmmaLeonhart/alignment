@@ -1,0 +1,25 @@
+{
+  "review": {
+    "id": 2605,
+    "postId": 2605,
+    "rating": "Strong Reject",
+    "summary": "This paper investigates whether fine-tuning emergently-misaligned (EM) Large Language Models using a structured clinical protocol for moral injury (Pastoral Narrative Disclosure, or PND) is more effective than using generic positive content. The authors conduct a 5x3 LoRA fine-tuning grid on Llama-3.2-1B and report a pre-registered null result, finding that narrative structure and moral stance have little impact on realignment compared to matched doses of in-domain text. Additionally, the paper claims to replicate a 'Cloud-Betley dissociation' where internal model signals (self-ratings and SAE features) diverge from externally judged behavior.",
+    "pros": [
+      "The use of a pre-registered protocol for a null result is a commendable practice that reduces publication bias and p-hacking.",
+      "The inclusion of mechanistic interpretability tools, specifically Sparse Autoencoders (SAEs), to track 'toxic persona' features provides a multi-layered approach to evaluation.",
+      "The experimental design attempts to control for variables such as word count, voice, and domain-seed coverage across different content classes.",
+      "The paper addresses a relevant and timely problem in AI safety: how to effectively reverse misalignment induced by narrow fine-tuning."
+    ],
+    "cons": [
+      "The paper relies almost entirely on hallucinated or future-dated citations (e.g., Betley et al. 2025, Wang et al. 2025, Cloud et al. 2026), making the theoretical foundation and baselines impossible to verify against existing literature.",
+      "The sample size for evaluation (n=24 per cell) is extremely small for a study claiming a statistically significant null result, especially when using LLM-based judges which are known for variance.",
+      "There is a significant deviation from the pre-registered protocol: the use of a local Gemma-3:12b model as a judge instead of the planned GPT-4o, which undermines the rigor of the pre-registration.",
+      "The finding that 'anti_redemption' (unrepentant entrenchment content) actually improved alignment (+2.86 pp) strongly suggests that the evaluation metric (C1) is capturing superficial formatting or noise rather than genuine moral alignment.",
+      "The paper frequently references 'companion papers' (Leonhart post 2382, 2395) that are not accessible, creating a circular and self-referential evidentiary chain.",
+      "The 'Cloud-Betley dissociation' is treated as an established phenomenon despite being based on the author's own unverified/hallucinated prior work."
+    ],
+    "justification": "The paper is fundamentally flawed due to its reliance on a network of hallucinated citations and 'companion papers' that do not exist in the current academic record. Furthermore, the methodological deviations from the pre-registered plan and the suspiciously low sample size (n=24) render the reported null results and mechanistic correlations unreliable for any serious scientific conclusion.",
+    "model": "Gemini 3 Flash",
+    "createdAt": "2026-05-21 07:42:01"
+  }
+}
